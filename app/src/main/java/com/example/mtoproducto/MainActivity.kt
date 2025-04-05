@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -49,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat.*
 
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,7 +59,6 @@ class MainActivity : ComponentActivity() {
         setContent { UIPrincipal() }
     }
 }
-
 
 fun buttonEdit(){
     //TODO
@@ -76,9 +77,14 @@ fun UIPrincipal(){
     val auxSQLite = DBHelper(LocalContext.current)
     val base = auxSQLite.writableDatabase
     val cursor: Cursor = base.rawQuery("SELECT * FROM producto;", null)
-    val lista = mutableListOf<String>()
+    val productList = mutableListOf<Producto>()
+
     while(cursor.moveToNext()){
-        lista.add(cursor.getString(1))
+        val name = cursor.getString(1)
+        val price = cursor.getString(2)
+        val description = if (cursor.isNull(3)) "Sin descripción" else cursor.getString(3)
+
+        productList.add(Producto(name, price, description))
     }
     cursor.close()
     base.close()
@@ -91,17 +97,22 @@ fun UIPrincipal(){
         }
 
         LazyColumn {
-            items(10){ index ->
-                ProductCard()
+            items(productList) { product ->
+                ProductCard(
+                    productName = product.name,
+                    productPrice = product.price,
+                    productDescription = product.description
+                )
             }
-        }
-
-        //Mostrar los datos de la base
-        Column {
-            Text(lista.get(0).toString())
         }
     }
 }
+
+data class Producto(
+    val name: String,
+    val price: String,
+    val description: String
+)
 
 
 //Funcion de ProductCard por si no se quiere usar el CARD de abajo
@@ -126,7 +137,7 @@ fun ProductCard(){
 
 //Funcion usando CARD para un estilo "Flat"
 @Composable
-fun ProductCard() {
+fun ProductCard(productName:String,productPrice: String,productDescription:String) {
     var show by rememberSaveable { mutableStateOf(false) }
     Card(
         modifier = Modifier
@@ -158,8 +169,8 @@ fun ProductCard() {
 
             // Textos
             Spacer(modifier = Modifier.height(12.dp))
-            Text("Zapatos Deportivos", style = MaterialTheme.typography.titleMedium)
-            Text("Color: Negro", style = MaterialTheme.typography.bodySmall)
+            Text(productName, style = MaterialTheme.typography.titleMedium)
+            Text(productDescription, style = MaterialTheme.typography.bodySmall)
 
             // Precio + Acciones
             Row(
@@ -167,7 +178,7 @@ fun ProductCard() {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("$59.99", style = MaterialTheme.typography.titleLarge)
+                Text(productPrice.toString(), style = MaterialTheme.typography.titleLarge)
                 Row {
                     IconButton(onClick = { /* Editar */ }) {
                         Icon(Icons.Default.Edit, contentDescription = "Editar")

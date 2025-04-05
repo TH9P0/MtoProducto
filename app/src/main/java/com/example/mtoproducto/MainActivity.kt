@@ -6,12 +6,31 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -22,11 +41,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat.*
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        setDecorFitsSystemWindows(window, false)  // Permite control manual
         setContent { UIPrincipal() }
     }
 }
@@ -37,7 +64,7 @@ fun buttonEdit(){
 }
 
 @Composable
-fun buttonDelete(show:Boolean, onDismiss:() -> Unit, onConfirm:()-> Unit){
+fun ButtonDelete(show:Boolean, onDismiss:() -> Unit, onConfirm:()-> Unit){
     //TODO: Show message for double check on deleting element
     if (show)
         AlertDialog(onDismissRequest = {onDismiss()}, confirmButton = { TextButton(onClick = {onConfirm()}){Text("Continuar")} }, dismissButton = {TextButton(onClick = {onDismiss()}){Text("Descartar")}}, title = {Text("Seguro que deseas eliminar este articulo?")}, text = {Text("Si aceptas eliminar este articulo ya no aparecera ni podras rehacer esta operacion, deseas continuar?")})
@@ -56,26 +83,32 @@ fun UIPrincipal(){
     cursor.close()
     base.close()
 
-    Text("Productos Disponibles")
+    Column(Modifier.fillMaxSize().systemBarsPadding().padding(5.dp)) {
 
-    LazyColumn {
-        items(10){ index ->
-            Text(text = "Item: $index")
-            productCard()
+        Row (Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically){
+            Text(text="Productos Disponibles", fontSize = 24.sp, textAlign =  TextAlign.Center)
+            Button(onClick = {}) {Text("Add New Item") }
+        }
+
+        LazyColumn {
+            items(10){ index ->
+                ProductCard()
+            }
+        }
+
+        //Mostrar los datos de la base
+        Column {
+            Text(lista.get(0).toString())
         }
     }
-
-    //Mostrar los datos de la base
-    Column {
-        Text(lista.get(0).toString())
-    }
-
 }
 
-@Composable
-fun productCard(){
+
+//Funcion de ProductCard por si no se quiere usar el CARD de abajo
+/*@Composable
+fun ProductCard(){
     var show by rememberSaveable { mutableStateOf(false) }
-    Row(Modifier.fillMaxWidth()){
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween){
         Text("Product Image")
         Column(){
             Text("Product Name")
@@ -88,7 +121,66 @@ fun productCard(){
         }
     }
 
-    buttonDelete(show, {show = false},{ Log.i("aris","click")})
+    ButtonDelete(show, {show = false},{ Log.i("aris","click")})
+}*/
+
+//Funcion usando CARD para un estilo "Flat"
+@Composable
+fun ProductCard() {
+    var show by rememberSaveable { mutableStateOf(false) }
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        elevation = CardDefaults.cardElevation(2.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Imagen
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Color.LightGray),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Placeholder",
+                    tint = Color.Gray,
+                    modifier = Modifier.size(48.dp)
+                )
+            }
+
+            // Textos
+            Spacer(modifier = Modifier.height(12.dp))
+            Text("Zapatos Deportivos", style = MaterialTheme.typography.titleMedium)
+            Text("Color: Negro", style = MaterialTheme.typography.bodySmall)
+
+            // Precio + Acciones
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("$59.99", style = MaterialTheme.typography.titleLarge)
+                Row {
+                    IconButton(onClick = { /* Editar */ }) {
+                        Icon(Icons.Default.Edit, contentDescription = "Editar")
+                    }
+                    IconButton(onClick = { show = true }) {
+                        Icon(Icons.Default.Delete, contentDescription = "Eliminar")
+                    }
+                }
+            }
+        }
+    }
+
+    ButtonDelete(show, {show = false},{ Log.i("aris","click")})
 }
 
 @Preview(showBackground = true)

@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -47,20 +48,32 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.view.WindowCompat.*
-
+import androidx.core.view.WindowCompat.setDecorFitsSystemWindows
+import androidx.compose.material3.lightColorScheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setDecorFitsSystemWindows(window, false)  // Permite control manual
-        setContent { UIPrincipal() }
+        setContent {
+            MaterialTheme(colorScheme = blueColorScheme) {
+                UIPrincipal()
+            }
+        }
     }
 }
 
 fun buttonEdit(){
     //TODO
+}
+
+@Composable
+fun ButtonDelete(show:Boolean, onDismiss:() -> Unit, onConfirm:()-> Unit){
+    //TODO: Show message for double check on deleting element
+    if (show)
+        AlertDialog(onDismissRequest = {onDismiss()}, confirmButton = { TextButton(onClick = {onConfirm()}){Text("Continuar")} }, dismissButton = {TextButton(onClick = {onDismiss()}){Text("Descartar")}}, title = {Text("Seguro que deseas eliminar este articulo?")}, text = {Text("Si aceptas eliminar este articulo ya no aparecera ni podras rehacer esta operacion, deseas continuar?")})
+
 }
 
 @Composable
@@ -84,7 +97,7 @@ fun UIPrincipal(){
 
         Row (Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically){
             Text(text="Productos Disponibles", fontSize = 24.sp, textAlign =  TextAlign.Center)
-            IconButton(onClick = {/* TODO:Aniadir */}) { Icon(Icons.Default.Add , contentDescription = "Aniadir Item") }
+            Button(onClick = {}) {Text("Add New Item") }
         }
 
         LazyColumn {
@@ -106,36 +119,6 @@ data class Producto(
 )
 
 @Composable
-fun ButtonDeleteProduct(show:Boolean, onDismiss:() -> Unit, onConfirm:()-> Unit){
-    //TODO: Show message for double check on deleting element
-    if (show)
-        AlertDialog(onDismissRequest = {onDismiss()}, confirmButton = { TextButton(onClick = {onConfirm()}){Text("Continuar")} }, dismissButton = {TextButton(onClick = {onDismiss()}){Text("Descartar")}}, title = {Text("Seguro que deseas eliminar este articulo?")}, text = {Text("Si aceptas eliminar este articulo ya no aparecera ni podras rehacer esta operacion, deseas continuar?")})
-
-}
-
-
-//Funcion de ProductCard por si no se quiere usar el CARD de abajo
-/*@Composable
-fun ProductCard(){
-    var show by rememberSaveable { mutableStateOf(false) }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween){
-        Text("Product Image")
-        Column(){
-            Text("Product Name")
-            Text("Product Price")
-            Text("Product Description")
-            Row{
-                Button(onClick = {buttonEdit()}) {Text("Editar") }
-                Button(onClick = {show = true}) {Text("Eliminar") }
-            }
-        }
-    }
-
-    ButtonDeleteProduct(show, {show = false},{ Log.i("aris","click")})
-}*/
-
-//Funcion usando CARD para un estilo "Flat"
-@Composable
 fun ProductCard(productName:String,productPrice: String,productDescription:String) {
     var show by rememberSaveable { mutableStateOf(false) }
     Card(
@@ -145,7 +128,7 @@ fun ProductCard(productName:String,productPrice: String,productDescription:Strin
         elevation = CardDefaults.cardElevation(2.dp),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -155,13 +138,13 @@ fun ProductCard(productName:String,productPrice: String,productDescription:Strin
                     .fillMaxWidth()
                     .height(150.dp)
                     .clip(RoundedCornerShape(4.dp))
-                    .background(Color.LightGray),
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Placeholder",
-                    tint = Color.Gray,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(48.dp)
                 )
             }
@@ -172,8 +155,12 @@ fun ProductCard(productName:String,productPrice: String,productDescription:Strin
             Text(productDescription, style = MaterialTheme.typography.bodySmall)
 
             // Precio + Acciones
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(productPrice.toString(), style = MaterialTheme.typography.titleLarge)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(productPrice, style = MaterialTheme.typography.titleLarge)
                 Row {
                     IconButton(onClick = { /* Editar */ }) {
                         Icon(Icons.Default.Edit, contentDescription = "Editar")
@@ -186,11 +173,62 @@ fun ProductCard(productName:String,productPrice: String,productDescription:Strin
         }
     }
 
-    ButtonDeleteProduct(show, {show = false},{ Log.i("aris","click")})
+    ButtonDelete(show, {show = false},{ Log.i("aris","click")})
 }
 
 @Preview(showBackground = true)
 @Composable
-fun Previsualizacion() {
-    UIPrincipal()
+fun PreviewUIPrincipal() {
+    MaterialTheme(colorScheme = blueColorScheme) {
+        val sampleProducts = listOf(
+            Producto("Producto 1", "49.00", "Este producto está chido"),
+            Producto("Otro producto", "9999.00", "Este también está chido")
+        )
+        Column(Modifier.fillMaxSize().systemBarsPadding().padding(5.dp)) {
+
+            Row (Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically){
+                Text(text="Productos Disponibles", fontSize = 24.sp, textAlign =  TextAlign.Center)
+                Button(onClick = {}) {Text("Add New Item") }
+            }
+
+            LazyColumn {
+                items(sampleProducts) { product ->
+                    ProductCard(
+                        productName = product.name,
+                        productPrice = product.price,
+                        productDescription = product.description
+                    )
+                }
+            }
+        }
+    }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun PreviewProductCard() {
+    MaterialTheme(colorScheme = blueColorScheme) {
+        ProductCard(
+            productName = "Producto de Ejemplo",
+            productPrice = "123.45",
+            productDescription = "Descripción del producto de ejemplo."
+        )
+    }
+}
+
+val blueColorScheme = lightColorScheme(
+    primary = Color(0xFF0D47A1),
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFBBDEFB),
+    onPrimaryContainer = Color(0xFF0D47A1),
+    secondary = Color(0xFF1976D2),
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFBBDEFB),
+    onSecondaryContainer = Color(0xFF1976D2),
+    background = Color(0xFFE3F2FD),
+    onBackground = Color(0xFF0D47A1),
+    surface = Color(0xFFFFFFFF),
+    onSurface = Color(0xFF0D47A1),
+    error = Color(0xFFD32F2F),
+    onError = Color.White
+)

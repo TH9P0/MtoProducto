@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -65,14 +64,6 @@ fun buttonEdit(){
 }
 
 @Composable
-fun ButtonDelete(show:Boolean, onDismiss:() -> Unit, onConfirm:()-> Unit){
-    //TODO: Show message for double check on deleting element
-    if (show)
-        AlertDialog(onDismissRequest = {onDismiss()}, confirmButton = { TextButton(onClick = {onConfirm()}){Text("Continuar")} }, dismissButton = {TextButton(onClick = {onDismiss()}){Text("Descartar")}}, title = {Text("Seguro que deseas eliminar este articulo?")}, text = {Text("Si aceptas eliminar este articulo ya no aparecera ni podras rehacer esta operacion, deseas continuar?")})
-
-}
-
-@Composable
 fun UIPrincipal(){
     val auxSQLite = DBHelper(LocalContext.current)
     val base = auxSQLite.writableDatabase
@@ -93,7 +84,7 @@ fun UIPrincipal(){
 
         Row (Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically){
             Text(text="Productos Disponibles", fontSize = 24.sp, textAlign =  TextAlign.Center)
-            Button(onClick = {}) {Text("Add New Item") }
+            IconButton(onClick = {/* TODO:Aniadir */}) { Icon(Icons.Default.Add , contentDescription = "Aniadir Item") }
         }
 
         LazyColumn {
@@ -114,6 +105,14 @@ data class Producto(
     val description: String
 )
 
+@Composable
+fun ButtonDeleteProduct(show:Boolean, onDismiss:() -> Unit, onConfirm:()-> Unit){
+    //TODO: Show message for double check on deleting element
+    if (show)
+        AlertDialog(onDismissRequest = {onDismiss()}, confirmButton = { TextButton(onClick = {onConfirm()}){Text("Continuar")} }, dismissButton = {TextButton(onClick = {onDismiss()}){Text("Descartar")}}, title = {Text("Seguro que deseas eliminar este articulo?")}, text = {Text("Si aceptas eliminar este articulo ya no aparecera ni podras rehacer esta operacion, deseas continuar?")})
+
+}
+
 
 //Funcion de ProductCard por si no se quiere usar el CARD de abajo
 /*@Composable
@@ -132,7 +131,7 @@ fun ProductCard(){
         }
     }
 
-    ButtonDelete(show, {show = false},{ Log.i("aris","click")})
+    ButtonDeleteProduct(show, {show = false},{ Log.i("aris","click")})
 }*/
 
 //Funcion usando CARD para un estilo "Flat"
@@ -173,11 +172,7 @@ fun ProductCard(productName:String,productPrice: String,productDescription:Strin
             Text(productDescription, style = MaterialTheme.typography.bodySmall)
 
             // Precio + Acciones
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(productPrice.toString(), style = MaterialTheme.typography.titleLarge)
                 Row {
                     IconButton(onClick = { /* Editar */ }) {
@@ -191,7 +186,7 @@ fun ProductCard(productName:String,productPrice: String,productDescription:Strin
         }
     }
 
-    ButtonDelete(show, {show = false},{ Log.i("aris","click")})
+    ButtonDeleteProduct(show, {show = false},{ Log.i("aris","click")})
 }
 
 @Preview(showBackground = true)

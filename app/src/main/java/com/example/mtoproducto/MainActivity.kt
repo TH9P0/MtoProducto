@@ -2,7 +2,6 @@ package com.example.mtoproducto
 
 import android.database.Cursor
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -50,6 +49,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat.setDecorFitsSystemWindows
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.remember
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,7 +74,7 @@ fun buttonEdit(){
 fun ButtonDelete(show:Boolean, onDismiss:() -> Unit, onConfirm:()-> Unit){
     //TODO: Show message for double check on deleting element
     if (show)
-        AlertDialog(onDismissRequest = {onDismiss()}, confirmButton = { TextButton(onClick = {onConfirm()}){Text("Continuar")} }, dismissButton = {TextButton(onClick = {onDismiss()}){Text("Descartar")}}, title = {Text("Seguro que deseas eliminar este articulo?")}, text = {Text("Si aceptas eliminar este articulo ya no aparecera ni podras rehacer esta operacion, deseas continuar?")})
+        AlertDialog(onDismissRequest = {onDismiss()}, confirmButton = { TextButton(onClick = {onConfirm()}){Text("Continuar")} }, dismissButton = {TextButton(onClick = {onDismiss()}){Text("Descartar")}}, title = {Text("Eliminar producto?")}, text = {Text("Esta accion no se puede deshacer")})
 
 }
 
@@ -81,23 +83,32 @@ fun UIPrincipal(){
     val auxSQLite = DBHelper(LocalContext.current)
     val base = auxSQLite.writableDatabase
     val cursor: Cursor = base.rawQuery("SELECT * FROM producto;", null)
-    val productList = mutableListOf<Producto>()
 
-    while(cursor.moveToNext()){
-        val name = cursor.getString(1)
-        val price = cursor.getString(2)
-        val description = if (cursor.isNull(3)) "Sin descripción" else cursor.getString(3)
+    //La lista de Productos en mutableListOf para que sea observable
+    val productList = remember { mutableStateListOf<Producto>() }
 
-        productList.add(Producto(name, price, description))
+    LaunchedEffect(Unit) {
+        while(cursor.moveToNext()){
+            val name = cursor.getString(1)
+            val price = cursor.getString(2)
+            val description = if (cursor.isNull(3)) "Sin descripción" else cursor.getString(3)
+
+            productList.add(Producto(name, price, description))
+        }
+        cursor.close()
+        base.close()
     }
-    cursor.close()
-    base.close()
 
-    Column(Modifier.fillMaxSize().systemBarsPadding().padding(5.dp)) {
+    Column(Modifier
+        .fillMaxSize()
+        .systemBarsPadding()
+        .padding(5.dp)) {
 
         Row (Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically){
             Text(text="Productos Disponibles", fontSize = 24.sp, textAlign =  TextAlign.Center)
-            Button(onClick = {}) {Text("Add New Item") }
+            IconButton(onClick = { /* Aniadir */ }) {
+                Icon(Icons.Default.Add, contentDescription = "Aniadir")
+            }
         }
 
         LazyColumn {
@@ -105,7 +116,16 @@ fun UIPrincipal(){
                 ProductCard(
                     productName = product.name,
                     productPrice = product.price,
-                    productDescription = product.description
+                    productDescription = product.description,
+                    onDelete = {
+                        //Esta linea elimina los productos del LazyColumn
+                        productList.remove(product)
+
+                        //Estas lineas eliminan el producto de la BD
+                        val db = auxSQLite.writableDatabase
+                        db.delete("producto", "nombre=?", arrayOf(product.name))
+                        db.close()
+                    }
                 )
             }
         }
@@ -119,7 +139,7 @@ data class Producto(
 )
 
 @Composable
-fun ProductCard(productName:String,productPrice: String,productDescription:String) {
+fun ProductCard(productName:String,productPrice: String,productDescription:String,  onDelete: ()->Unit) {
     var show by rememberSaveable { mutableStateOf(false) }
     Card(
         modifier = Modifier
@@ -173,7 +193,8 @@ fun ProductCard(productName:String,productPrice: String,productDescription:Strin
         }
     }
 
-    ButtonDelete(show, {show = false},{ Log.i("aris","click")})
+    ButtonDelete(show, onDismiss = {show = false}, onConfirm = { onDelete()
+    show = false})
 }
 
 @Preview(showBackground = true)
@@ -184,7 +205,10 @@ fun PreviewUIPrincipal() {
             Producto("Producto 1", "49.00", "Este producto está chido"),
             Producto("Otro producto", "9999.00", "Este también está chido")
         )
-        Column(Modifier.fillMaxSize().systemBarsPadding().padding(5.dp)) {
+        Column(Modifier
+            .fillMaxSize()
+            .systemBarsPadding()
+            .padding(5.dp)) {
 
             Row (Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically){
                 Text(text="Productos Disponibles", fontSize = 24.sp, textAlign =  TextAlign.Center)
@@ -196,7 +220,8 @@ fun PreviewUIPrincipal() {
                     ProductCard(
                         productName = product.name,
                         productPrice = product.price,
-                        productDescription = product.description
+                        productDescription = product.description,
+                        onDelete = { /* No hace nada en la preview */ }
                     )
                 }
             }
@@ -211,7 +236,8 @@ fun PreviewProductCard() {
         ProductCard(
             productName = "Producto de Ejemplo",
             productPrice = "123.45",
-            productDescription = "Descripción del producto de ejemplo."
+            productDescription = "Descripción del producto de ejemplo.",
+            onDelete = { /* No hace nada en la preview */ }
         )
     }
 }

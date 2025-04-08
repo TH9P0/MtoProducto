@@ -52,6 +52,13 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
+import android.graphics.BitmapFactory
+import android.util.Base64
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.ui.layout.ContentScale
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -82,21 +89,26 @@ fun ButtonDelete(show:Boolean, onDismiss:() -> Unit, onConfirm:()-> Unit){
 fun UIPrincipal(){
     val auxSQLite = DBHelper(LocalContext.current)
     val base = auxSQLite.writableDatabase
-    val cursor: Cursor = base.rawQuery("SELECT * FROM producto;", null)
 
     //La lista de Productos en mutableListOf para que sea observable
     val productList = remember { mutableStateListOf<Producto>() }
 
     LaunchedEffect(Unit) {
-        while(cursor.moveToNext()){
-            val name = cursor.getString(1)
-            val price = cursor.getString(2)
-            val description = if (cursor.isNull(3)) "Sin descripción" else cursor.getString(3)
+        val db = auxSQLite.readableDatabase
+        val cursor: Cursor = base.rawQuery("SELECT * FROM producto;", null)
 
-            productList.add(Producto(name, price, description))
+        while(cursor.moveToNext()){
+            productList.add(
+                Producto(
+                    name = cursor.getString(1),
+                    price = cursor.getString(2),
+                    description = if (cursor.isNull(3)) "Sin descripción" else cursor.getString(3),
+                    imagen = if (cursor.isNull(4)) "" else cursor.getString(4)
+                )
+            )
         }
         cursor.close()
-        base.close()
+        db.close()
     }
 
     Column(Modifier
@@ -114,9 +126,7 @@ fun UIPrincipal(){
         LazyColumn {
             items(productList) { product ->
                 ProductCard(
-                    productName = product.name,
-                    productPrice = product.price,
-                    productDescription = product.description,
+                    product = product,
                     onDelete = {
                         //Esta linea elimina los productos del LazyColumn
                         productList.remove(product)
@@ -135,12 +145,30 @@ fun UIPrincipal(){
 data class Producto(
     val name: String,
     val price: String,
-    val description: String
+    val description: String,
+    val imagen: String
 )
 
 @Composable
-fun ProductCard(productName:String,productPrice: String,productDescription:String,  onDelete: ()->Unit) {
+fun ProductCard(product: Producto,  onDelete: ()->Unit) {
+
     var show by rememberSaveable { mutableStateOf(false) }
+
+
+    // Convertir Base64 a ImageBitmap
+    val imageBitmap = remember(product.imagen) {
+        if (product.imagen.isNotEmpty()) {
+            try {
+                val imageBytes = Base64.decode(product.imagen, Base64.DEFAULT)
+                BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)?.asImageBitmap()
+            } catch (e: Exception) {
+                null
+            }
+        } else {
+            null
+        }
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -155,24 +183,33 @@ fun ProductCard(productName:String,productPrice: String,productDescription:Strin
             // Imagen
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp)
+                    .width(100.dp)
+                    .height(100.dp)
                     .clip(RoundedCornerShape(4.dp))
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Placeholder",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(48.dp)
-                )
+                if (imageBitmap != null) {
+                    Image(
+                        bitmap = imageBitmap,
+                        contentDescription = product.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = "Placeholder",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
             }
 
             // Textos
             Spacer(modifier = Modifier.height(12.dp))
-            Text(productName, style = MaterialTheme.typography.titleMedium)
-            Text(productDescription, style = MaterialTheme.typography.bodySmall)
+            Text(product.name, style = MaterialTheme.typography.titleMedium)
+            Text(product.description, style = MaterialTheme.typography.bodySmall)
 
             // Precio + Acciones
             Row(
@@ -180,7 +217,7 @@ fun ProductCard(productName:String,productPrice: String,productDescription:Strin
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(productPrice, style = MaterialTheme.typography.titleLarge)
+                Text(product.price, style = MaterialTheme.typography.titleLarge)
                 Row {
                     IconButton(onClick = { /* Editar */ }) {
                         Icon(Icons.Default.Edit, contentDescription = "Editar")
@@ -202,8 +239,8 @@ fun ProductCard(productName:String,productPrice: String,productDescription:Strin
 fun PreviewUIPrincipal() {
     MaterialTheme(colorScheme = blueColorScheme) {
         val sampleProducts = listOf(
-            Producto("Producto 1", "49.00", "Este producto está chido"),
-            Producto("Otro producto", "9999.00", "Este también está chido")
+            Producto("Producto 1", "49.00", "Este producto está chido",""),
+            Producto("Otro producto", "9999.00", "Este también está chido","")
         )
         Column(Modifier
             .fillMaxSize()
@@ -218,10 +255,13 @@ fun PreviewUIPrincipal() {
             LazyColumn {
                 items(sampleProducts) { product ->
                     ProductCard(
-                        productName = product.name,
-                        productPrice = product.price,
-                        productDescription = product.description,
-                        onDelete = { /* No hace nada en la preview */ }
+                        product = Producto(
+                            "Producto de Ejemplo",
+                            "123.45",
+                            "Descripción",
+                            "" // Cadena Base64 vacía para la preview
+                        ),
+                        onDelete = {}
                     )
                 }
             }
@@ -234,10 +274,13 @@ fun PreviewUIPrincipal() {
 fun PreviewProductCard() {
     MaterialTheme(colorScheme = blueColorScheme) {
         ProductCard(
-            productName = "Producto de Ejemplo",
-            productPrice = "123.45",
-            productDescription = "Descripción del producto de ejemplo.",
-            onDelete = { /* No hace nada en la preview */ }
+            product = Producto(
+                "Producto de Ejemplo",
+                "123.45",
+                "Descripción",
+                "" // Cadena Base64 vacía para la preview
+            ),
+            onDelete = {}
         )
     }
 }

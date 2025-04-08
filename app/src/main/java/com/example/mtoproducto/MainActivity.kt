@@ -236,7 +236,7 @@ fun ProductCard(product: Producto,  onDelete: ()->Unit) {
     }
 
     ButtonDelete(show, onDismiss = {show = false}, onConfirm = { onDelete()
-    show = false})
+        show = false})
 }
 
 @Preview(showBackground = true)
@@ -291,18 +291,18 @@ fun PreviewProductCard() {
 }
 
 val blueColorScheme = lightColorScheme(
-    primary = Color(0xFF0D47A1),
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFBBDEFB),
-    onPrimaryContainer = Color(0xFF0D47A1),
-    secondary = Color(0xFF1976D2),
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFBBDEFB),
-    onSecondaryContainer = Color(0xFF1976D2),
-    background = Color(0xFFE3F2FD),
-    onBackground = Color(0xFF0D47A1),
-    surface = Color(0xFFFFFFFF),
-    onSurface = Color(0xFF0D47A1),
-    error = Color(0xFFD32F2F),
-    onError = Color.White
+    primary = Color(0xFF134074),       // Azul oscuro principal
+    onPrimary = Color(0xFFEEF4ED),     // Blanco/verde claro para texto sobre primary
+    primaryContainer = Color(0xFFD4E3F5), // Versión más clara de primary
+    onPrimaryContainer = Color(0xFF0B2545), // Azul muy oscuro para texto sobre primaryContainer
+    secondary = Color(0xFF0B2545),     // Azul muy oscuro como secundario
+    onSecondary = Color(0xFFEEF4ED),   // Blanco/verde claro para texto sobre secondary
+    secondaryContainer = Color(0xFFC3D0E0), // Versión más clara de secondary
+    onSecondaryContainer = Color(0xFF0B2545), // Azul muy oscuro para texto sobre secondaryContainer
+    background = Color(0xFFEEF4ED),    // Fondo claro
+    onBackground = Color(0xFF0B2545),  // Azul muy oscuro para texto sobre fondo
+    surface = Color(0xFFFFFFFF),       // Superficie blanca
+    onSurface = Color(0xFF0B2545),     // Azul muy oscuro para texto sobre superficie
+    error = Color(0xFFD32F2F),        // Rojo de error
+    onError = Color(0xFFFFFFFF)       // Blanco para texto sobre error
 )

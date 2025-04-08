@@ -54,10 +54,12 @@ import androidx.compose.runtime.remember
 import android.graphics.BitmapFactory
 import android.util.Base64
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -178,58 +180,75 @@ fun ProductCard(product: Producto,  onDelete: ()->Unit) {
             containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
         )
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row {
-                // Imagen
-                Box(
-                    modifier = Modifier
-                        .width(100.dp)
-                        .height(100.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
-                    contentAlignment = Alignment.Center
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Imagen (100x100px)
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (imageBitmap != null) {
+                    Image(
+                        bitmap = imageBitmap,
+                        contentDescription = product.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = "Placeholder",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Columna para texto y precio
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = product.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2, // Limita a 2 líneas
+                    overflow = TextOverflow.Ellipsis // Puntos suspensivos si es muy largo
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = product.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "$${product.price}",
+                    style = MaterialTheme.typography.titleLarge
+                )
+            }
+
+            // Botones de acción
+            Column {
+                IconButton(
+                    onClick = { /* Editar */ },
+                    modifier = Modifier.size(48.dp)
                 ) {
-                    if (imageBitmap != null) {
-                        Image(
-                            bitmap = imageBitmap,
-                            contentDescription = product.name,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Warning,
-                            contentDescription = "Placeholder",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(48.dp)
-                        )
-                    }
+                    Icon(Icons.Default.Edit, contentDescription = "Editar")
                 }
-
-                Column (Modifier.padding(10.dp)) {
-                    Text(product.name, style = MaterialTheme.typography.titleMedium)
-                    Text(product.description, style = MaterialTheme.typography.bodySmall)
-                    Text("$" + product.price, style = MaterialTheme.typography.titleLarge)
-
-
-                }
-
-                Column {
-                    // Precio + Acciones
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row {
-                            IconButton(onClick = { /* Editar */ }) {
-                                Icon(Icons.Default.Edit, contentDescription = "Editar")
-                            }
-                            IconButton(onClick = { show = true }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Eliminar")
-                            }
-                        }
-                    }
+                Spacer(modifier = Modifier.height(8.dp))
+                IconButton(
+                    onClick = { show = true },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = "Eliminar")
                 }
             }
         }

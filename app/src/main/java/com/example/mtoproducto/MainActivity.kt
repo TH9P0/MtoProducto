@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -180,50 +179,56 @@ fun ProductCard(product: Producto,  onDelete: ()->Unit) {
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Imagen
-            Box(
-                modifier = Modifier
-                    .width(100.dp)
-                    .height(100.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
-                contentAlignment = Alignment.Center
-            ) {
-                if (imageBitmap != null) {
-                    Image(
-                        bitmap = imageBitmap,
-                        contentDescription = product.name,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Warning,
-                        contentDescription = "Placeholder",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(48.dp)
-                    )
-                }
-            }
-
-            // Textos
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(product.name, style = MaterialTheme.typography.titleMedium)
-            Text(product.description, style = MaterialTheme.typography.bodySmall)
-
-            // Precio + Acciones
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(product.price, style = MaterialTheme.typography.titleLarge)
-                Row {
-                    IconButton(onClick = { /* Editar */ }) {
-                        Icon(Icons.Default.Edit, contentDescription = "Editar")
+            Row {
+                // Imagen
+                Box(
+                    modifier = Modifier
+                        .width(100.dp)
+                        .height(100.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (imageBitmap != null) {
+                        Image(
+                            bitmap = imageBitmap,
+                            contentDescription = product.name,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = "Placeholder",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(48.dp)
+                        )
                     }
-                    IconButton(onClick = { show = true }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Eliminar")
+                }
+
+                Column (Modifier.padding(10.dp)) {
+                    Text(product.name, style = MaterialTheme.typography.titleMedium)
+                    Text(product.description, style = MaterialTheme.typography.bodySmall)
+                    Text("$" + product.price, style = MaterialTheme.typography.titleLarge)
+
+
+                }
+
+                Column {
+                    // Precio + Acciones
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row {
+                            IconButton(onClick = { /* Editar */ }) {
+                                Icon(Icons.Default.Edit, contentDescription = "Editar")
+                            }
+                            IconButton(onClick = { show = true }) {
+                                Icon(Icons.Default.Delete, contentDescription = "Eliminar")
+                            }
+                        }
                     }
                 }
             }

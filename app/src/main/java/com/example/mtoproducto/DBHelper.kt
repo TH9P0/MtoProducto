@@ -108,14 +108,29 @@ class DBHelper(private val context: Context) : SQLiteOpenHelper(context, DATABAS
      * @param precio Precio del producto
      * @param descripcion Descripción opcional del producto
      * @param imagenBase64 Imagen del producto codificada en Base64 (opcional)
+     * @param imagenBitmap Imagen del producto como Bitmap (opcional)
      * @return ID del nuevo producto insertado o -1 si hubo error
      */
-    fun agregarProducto(nombre: String, precio: Double, descripcion: String? = null, imagenBase64: String? = null): Long {
+    fun agregarProducto(
+        nombre: String,
+        precio: Double,
+        descripcion: String? = null,
+        imagenBase64: String? = null,
+        imagenBitmap: Bitmap? = null
+    ): Long {
+        val finalImagenBase64 = imagenBase64 ?: imagenBitmap?.let { bitmap ->
+            // Convertir el Bitmap a Base64
+            val byteArrayOutputStream = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream)
+            val byteArray = byteArrayOutputStream.toByteArray()
+            Base64.encodeToString(byteArray, Base64.DEFAULT)
+        }
+
         val values = ContentValues().apply {
             put(COLUMN_NOMBRE, nombre)
             put(COLUMN_PRECIO, precio)
             descripcion?.let { put(COLUMN_DESCRIPCION, it) }
-            imagenBase64?.let { put(COLUMN_IMAGEN, it) }
+            finalImagenBase64?.let { put(COLUMN_IMAGEN, it) }
         }
 
         return writableDatabase.use { db ->

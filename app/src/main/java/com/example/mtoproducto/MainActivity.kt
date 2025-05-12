@@ -4,9 +4,7 @@ import android.database.Cursor
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -42,34 +40,60 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.view.WindowCompat.setDecorFitsSystemWindows
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import android.graphics.BitmapFactory
 import android.util.Base64
+import android.widget.Toast
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.navigation.NavController
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.example.mtoproducto.ui.theme.MtoProductoTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setDecorFitsSystemWindows(window, false)  // Permite control manual
         setContent {
-            MaterialTheme(colorScheme = blueColorScheme) {
-                UIPrincipal()
+            MtoProductoTheme {
+                Navegacion()
             }
+        }
+    }
+}
+
+@Composable
+fun Navegacion(){
+    val navControlador = rememberNavController()
+
+    NavHost(navControlador, startDestination = "PantallaPrincipal"){
+        composable("PantallaPrincipal"){
+            PantallaPrincipal(navControlador)
+        }
+        composable("ProductoMto?nombre={nombre}?",
+            arguments = listOf(navArgument("nombre") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            })
+        ){
+            backStackEntry ->
+                ProductoMto(backStackEntry.arguments?.getString("nombre"))
         }
     }
 }
@@ -80,15 +104,45 @@ fun buttonEdit(){
 
 @Composable
 fun ButtonDelete(show:Boolean, onDismiss:() -> Unit, onConfirm:()-> Unit){
-    //TODO: Show message for double check on deleting element
     if (show)
         AlertDialog(onDismissRequest = {onDismiss()}, confirmButton = { TextButton(onClick = {onConfirm()}){Text("Continuar")} }, dismissButton = {TextButton(onClick = {onDismiss()}){Text("Descartar")}}, title = {Text("Eliminar producto?")}, text = {Text("Esta accion no se puede deshacer")})
 
 }
 
 @Composable
-fun UIPrincipal(){
-    val auxSQLite = DBHelper(LocalContext.current)
+fun ProductoMto(nombre:String?){
+    val context = LocalContext.current
+    val auxSQLite = DBHelper(context)
+    val base = auxSQLite.writableDatabase
+
+    var nombre by remember { mutableStateOf("") }
+    var precio by remember { mutableStateOf("") }
+    var descripcion by remember { mutableStateOf("") }
+    var imagen by remember { mutableStateOf("") }
+
+    Column (Modifier.fillMaxSize().padding(16.dp)){
+        Text("Aniadir producto", fontSize = 24.sp, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(value = nombre, onValueChange = {nombre = it}, label = {Text("Nombre*")}, modifier =  Modifier.fillMaxWidth())
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(value = precio, onValueChange = {precio = it}, label = {Text("Precio*")}, modifier =  Modifier.fillMaxWidth())
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(value = descripcion, onValueChange = {descripcion = it}, label = {Text("Descripcion")}, modifier =  Modifier.fillMaxWidth())
+        Spacer(Modifier.height(8.dp))
+        Row(Modifier.fillMaxWidth(), Arrangement.SpaceEvenly) {
+            Button(onClick = {/*TODO: Elaborar logica para tomar foto*/}) { Text("Tomar foto") }
+            Button(onClick = {/*TODO: Elaborar logica para tomar foto*/}) { Text("Subir desde la galeria") }
+        }
+        Spacer(Modifier.height(8.dp))
+        Button(onClick = {/* TODO: Complementar logica para aniadir el producto */}, modifier = Modifier.fillMaxWidth()) { Text("Aniadir Producto") }
+    }
+
+}
+
+@Composable
+fun PantallaPrincipal(navControlador: NavController){
+    val context = LocalContext.current
+    val auxSQLite = DBHelper(context)
     val base = auxSQLite.writableDatabase
 
     //La lista de Productos en mutableListOf para que sea observable
@@ -98,8 +152,9 @@ fun UIPrincipal(){
         val db = auxSQLite.readableDatabase
         val cursor: Cursor = base.rawQuery("SELECT * FROM producto;", null)
 
+        val tempList = mutableListOf<Producto>()
         while(cursor.moveToNext()){
-            productList.add(
+            tempList.add(
                 Producto(
                     name = cursor.getString(1),
                     price = cursor.getString(2),
@@ -110,6 +165,9 @@ fun UIPrincipal(){
         }
         cursor.close()
         db.close()
+
+        productList.clear()
+        productList.addAll(tempList)
     }
 
     Column(Modifier
@@ -119,7 +177,7 @@ fun UIPrincipal(){
 
         Row (Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically){
             Text(text="Productos Disponibles", fontSize = 24.sp, textAlign =  TextAlign.Center)
-            IconButton(onClick = { /* Aniadir */ }) {
+            IconButton(onClick = { navControlador.navigate("ProductoMto") }) {
                 Icon(Icons.Default.Add, contentDescription = "Aniadir")
             }
         }
@@ -129,13 +187,14 @@ fun UIPrincipal(){
                 ProductCard(
                     product = product,
                     onDelete = {
-                        //Esta linea elimina los productos del LazyColumn
-                        productList.remove(product)
+                        val eliminado = auxSQLite.deleteProduct(product.name)
 
-                        //Estas lineas eliminan el producto de la BD
-                        val db = auxSQLite.writableDatabase
-                        db.delete("producto", "nombre=?", arrayOf(product.name))
-                        db.close()
+                        if(eliminado){
+                            productList.remove(product)
+                            Toast.makeText(context,"Producto eliminado exitosamente",Toast.LENGTH_LONG).show()
+                        }else{
+                            Toast.makeText(context,"Fallo al eliminar el producto",Toast.LENGTH_LONG).show()
+                        }
                     }
                 )
             }
@@ -261,7 +320,7 @@ fun ProductCard(product: Producto,  onDelete: ()->Unit) {
 @Preview(showBackground = true)
 @Composable
 fun PreviewUIPrincipal() {
-    MaterialTheme(colorScheme = blueColorScheme) {
+    MtoProductoTheme {
         val sampleProducts = listOf(
             Producto("Producto 1", "49.00", "Este producto está chido",""),
             Producto("Otro producto", "9999.00", "Este también está chido","")
@@ -296,7 +355,7 @@ fun PreviewUIPrincipal() {
 @Preview(showBackground = true)
 @Composable
 fun PreviewProductCard() {
-    MaterialTheme(colorScheme = blueColorScheme) {
+    MtoProductoTheme {
         ProductCard(
             product = Producto(
                 "Producto de Ejemplo",
@@ -308,20 +367,3 @@ fun PreviewProductCard() {
         )
     }
 }
-
-val blueColorScheme = lightColorScheme(
-    primary = Color(0xFF134074),       // Azul oscuro principal
-    onPrimary = Color(0xFFEEF4ED),     // Blanco/verde claro para texto sobre primary
-    primaryContainer = Color(0xFFD4E3F5), // Versión más clara de primary
-    onPrimaryContainer = Color(0xFF0B2545), // Azul muy oscuro para texto sobre primaryContainer
-    secondary = Color(0xFF0B2545),     // Azul muy oscuro como secundario
-    onSecondary = Color(0xFFEEF4ED),   // Blanco/verde claro para texto sobre secondary
-    secondaryContainer = Color(0xFFC3D0E0), // Versión más clara de secondary
-    onSecondaryContainer = Color(0xFF0B2545), // Azul muy oscuro para texto sobre secondaryContainer
-    background = Color(0xFFEEF4ED),    // Fondo claro
-    onBackground = Color(0xFF0B2545),  // Azul muy oscuro para texto sobre fondo
-    surface = Color(0xFFFFFFFF),       // Superficie blanca
-    onSurface = Color(0xFF0B2545),     // Azul muy oscuro para texto sobre superficie
-    error = Color(0xFFD32F2F),        // Rojo de error
-    onError = Color(0xFFFFFFFF)       // Blanco para texto sobre error
-)

@@ -1,5 +1,6 @@
 package com.example.mtoproducto
 
+import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
@@ -9,6 +10,13 @@ import android.util.Base64
 import java.io.ByteArrayOutputStream
 
 class DBHelper(context: Context) : SQLiteOpenHelper(context, "mibase.db" , null, 1) {
+
+    val tableName = "producto"
+    val columnId = "id_producto"
+    val columnName = "nombre"
+    val columnPrice = "precio"
+    val columnDescription = "descripcion"
+    val columnImage = "imagen"
 
     val cheetosBase64 = convertImageToBase64(context, R.drawable.cheetos)
     val doritosBase64 = convertImageToBase64(context, R.drawable.doritos)
@@ -22,12 +30,12 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, "mibase.db" , null,
     val arizonaBase64 = convertImageToBase64(context, R.drawable.arizona)
 
     override fun onCreate(db: SQLiteDatabase?) {
-        val query1 = "CREATE TABLE producto(\n" +
-                "id_producto INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,\n" +
-                "nombre TEXT NOT NULL,\n" +
-                "precio DOUBLE NOT NULL,\n" +
-                "descripcion TEXT,\n" +
-                "imagen TEXT" +
+        val query1 = "CREATE TABLE $tableName(\n" +
+                "$columnId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,\n" +
+                "$columnName TEXT NOT NULL,\n" +
+                "$columnPrice DOUBLE NOT NULL,\n" +
+                "$columnDescription TEXT,\n" +
+                "$columnImage TEXT" +
                 ");"
         val query2 = "INSERT INTO producto VALUES (" +
                 "NULL, 'Cheetos', 17.5, NULL, '$cheetosBase64'),(" +
@@ -46,12 +54,52 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, "mibase.db" , null,
     }
 
     override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
-        TODO("Modificas cuando te toque actualizar tu app")
+        db?.execSQL("DROP TABLE IF EXISTS $tableName")
+        onCreate(db)
     }
+
+    fun addProduct(nombre:String, precio:String, descripcion:String?, imagen:String?): Long?{
+        val db = this.writableDatabase
+        val cv = ContentValues().apply {
+            put(columnName,nombre)
+            put(columnPrice,precio)
+            put(columnDescription,descripcion)
+            put(columnImage,imagen)
+        }
+        val result = db?.insert(tableName, null, cv)
+        db?.close()
+        return result
+    }
+
+    fun deleteProduct(nombre:String): Boolean{
+        val db = this.writableDatabase
+        return try {
+            val filas = db.delete(tableName, "$columnName=?", arrayOf(nombre))
+            filas > 0
+        } catch (e: Exception) {
+            false
+        } finally {
+            db.close()
+        }
+    }
+
+    fun updateProduct(db: SQLiteDatabase, id:Int ,nombre: String, precio: String, descripcion: String?, imagen: String?): Int{
+        val cv = ContentValues().apply {
+            put(columnName,nombre)
+            put(columnPrice,precio)
+            put(columnDescription,descripcion)
+            put(columnImage,imagen)
+        }
+        val result = db.update(tableName,cv,"$columnId=?",arrayOf(id.toString()))
+        db.close()
+        return result
+    }
+
+
 
     fun convertImageToBase64(context: Context, drawableId: Int): String {
         val bitmap = BitmapFactory.decodeResource(context.resources, drawableId)
-        val scaledBitmap = Bitmap.createScaledBitmap(bitmap, 100, 100, true)
+        val scaledBitmap =  Bitmap.createScaledBitmap(bitmap, 100, 100, true)
 
         val byteArrayOutputStream = ByteArrayOutputStream()
         scaledBitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream)

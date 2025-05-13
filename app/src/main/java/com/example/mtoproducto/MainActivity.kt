@@ -85,21 +85,17 @@ fun Navegacion(){
         composable("PantallaPrincipal"){
             PantallaPrincipal(navControlador)
         }
-        composable("ProductoMto?nombre={nombre}?",
-            arguments = listOf(navArgument("nombre") {
+        composable("ProductoMto?id={id}",
+            arguments = listOf(navArgument("id") {
                 type = NavType.StringType
                 nullable = true
                 defaultValue = null
             })
         ){
             backStackEntry ->
-                ProductoMto(backStackEntry.arguments?.getString("nombre"))
+                ProductoMto(backStackEntry.arguments?.getString("id"))
         }
     }
-}
-
-fun buttonEdit(){
-    //TODO
 }
 
 @Composable
@@ -110,19 +106,35 @@ fun ButtonDelete(show:Boolean, onDismiss:() -> Unit, onConfirm:()-> Unit){
 }
 
 @Composable
-fun ProductoMto(nombre:String?){
+fun ProductoMto(id:String?){
     val context = LocalContext.current
     val auxSQLite = DBHelper(context)
-    val base = auxSQLite.writableDatabase
+    val navController = rememberNavController()
 
     var nombre by remember { mutableStateOf("") }
     var precio by remember { mutableStateOf("") }
     var descripcion by remember { mutableStateOf("") }
     var imagen by remember { mutableStateOf("") }
 
+    LaunchedEffect(id) {
+        if (!id.isNullOrEmpty()) {
+            val producto = auxSQLite.getProductById(id)
+            producto?.let {
+                nombre = it.name
+                precio = it.price
+                descripcion = it.description
+                imagen = it.imagen
+            }
+        }
+    }
+
     Column (Modifier.fillMaxSize().padding(16.dp)){
-        Text("Aniadir producto", fontSize = 24.sp, textAlign = TextAlign.Center)
+        Text(text=if (id != null) "Editar Producto" else "Añadir Producto", fontSize = 24.sp, textAlign = TextAlign.Center)
         Spacer(Modifier.height(8.dp))
+        if(!id.isNullOrEmpty()){
+            Text("ID: $id", textAlign = TextAlign.Center, fontSize = 24.sp)
+            Spacer(Modifier.height(8.dp))
+        }
         OutlinedTextField(value = nombre, onValueChange = {nombre = it}, label = {Text("Nombre*")}, modifier =  Modifier.fillMaxWidth())
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(value = precio, onValueChange = {precio = it}, label = {Text("Precio*")}, modifier =  Modifier.fillMaxWidth())
@@ -134,7 +146,67 @@ fun ProductoMto(nombre:String?){
             Button(onClick = {/*TODO: Elaborar logica para tomar foto*/}) { Text("Subir desde la galeria") }
         }
         Spacer(Modifier.height(8.dp))
-        Button(onClick = {/* TODO: Complementar logica para aniadir el producto */}, modifier = Modifier.fillMaxWidth()) { Text("Aniadir Producto") }
+        // Mostrar imagen actual si existe
+        if (imagen.isNotEmpty()) {
+            val imageBitmap = remember(imagen) {
+                try {
+                    val imageBytes = Base64.decode(imagen, Base64.DEFAULT)
+                    BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)?.asImageBitmap()
+                } catch (e: Exception) {
+                    null
+                }
+            }
+
+            imageBitmap?.let {
+                Image(
+                    bitmap = it,
+                    contentDescription = "Imagen actual",
+                    modifier = Modifier
+                        .size(100.dp)
+                        .align(Alignment.CenterHorizontally),
+                    contentScale = ContentScale.Crop
+                )
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Button(
+            onClick = {
+                if (nombre.isBlank() || precio.isBlank()) {
+                    Toast.makeText(context, "Nombre y precio son obligatorios", Toast.LENGTH_SHORT).show()
+                    return@Button
+                }
+
+                val db = auxSQLite.writableDatabase
+                val success = if (id != null) {
+                    // Actualizar producto existente
+                    val rows = auxSQLite.updateProduct(db, id, nombre, precio, descripcion, imagen)
+                    rows > 0
+                } else {
+                    // Crear nuevo producto
+                    val newId = auxSQLite.addProduct(nombre, precio, descripcion, imagen)
+                    newId != null && newId != -1L
+                }
+                db.close()
+
+                if (success) {
+                    Toast.makeText(
+                        context,
+                        if (id != null) "Producto actualizado" else "Producto añadido",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    navController.popBackStack()
+                } else {
+                    Toast.makeText(
+                        context,
+                        "Error al guardar el producto",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(if (id != null) "Actualizar Producto" else "Añadir Producto")
+        }
     }
 
 }
@@ -156,6 +228,7 @@ fun PantallaPrincipal(navControlador: NavController){
         while(cursor.moveToNext()){
             tempList.add(
                 Producto(
+                    id = cursor.getString(0),
                     name = cursor.getString(1),
                     price = cursor.getString(2),
                     description = if (cursor.isNull(3)) "Sin descripción" else cursor.getString(3),
@@ -186,8 +259,9 @@ fun PantallaPrincipal(navControlador: NavController){
             items(productList) { product ->
                 ProductCard(
                     product = product,
+                    navController = navControlador,
                     onDelete = {
-                        val eliminado = auxSQLite.deleteProduct(product.name)
+                        val eliminado = auxSQLite.deleteProduct(product.id)
 
                         if(eliminado){
                             productList.remove(product)
@@ -203,6 +277,7 @@ fun PantallaPrincipal(navControlador: NavController){
 }
 
 data class Producto(
+    val id: String,
     val name: String,
     val price: String,
     val description: String,
@@ -210,7 +285,7 @@ data class Producto(
 )
 
 @Composable
-fun ProductCard(product: Producto,  onDelete: ()->Unit) {
+fun ProductCard(product: Producto, navController: NavController, onDelete: ()->Unit) {
 
     var show by rememberSaveable { mutableStateOf(false) }
 
@@ -297,7 +372,7 @@ fun ProductCard(product: Producto,  onDelete: ()->Unit) {
             // Botones de acción
             Column {
                 IconButton(
-                    onClick = { /* Editar */ },
+                    onClick = { navController.navigate("ProductoMto?id=${product.id}") },
                     modifier = Modifier.size(48.dp)
                 ) {
                     Icon(Icons.Default.Edit, contentDescription = "Editar")
@@ -322,8 +397,8 @@ fun ProductCard(product: Producto,  onDelete: ()->Unit) {
 fun PreviewUIPrincipal() {
     MtoProductoTheme {
         val sampleProducts = listOf(
-            Producto("Producto 1", "49.00", "Este producto está chido",""),
-            Producto("Otro producto", "9999.00", "Este también está chido","")
+            Producto("","Producto 1", "49.00", "Este producto está chido",""),
+            Producto("","Otro producto", "9999.00", "Este también está chido","")
         )
         Column(Modifier
             .fillMaxSize()
@@ -339,11 +414,13 @@ fun PreviewUIPrincipal() {
                 items(sampleProducts) { product ->
                     ProductCard(
                         product = Producto(
+                            "", // Cadena vacia de ID
                             "Producto de Ejemplo",
                             "123.45",
                             "Descripción",
                             "" // Cadena Base64 vacía para la preview
                         ),
+                        navController = rememberNavController(),
                         onDelete = {}
                     )
                 }
@@ -358,11 +435,13 @@ fun PreviewProductCard() {
     MtoProductoTheme {
         ProductCard(
             product = Producto(
+                "",
                 "Producto de Ejemplo",
                 "123.45",
                 "Descripción",
                 "" // Cadena Base64 vacía para la preview
             ),
+            navController = rememberNavController(),
             onDelete = {}
         )
     }

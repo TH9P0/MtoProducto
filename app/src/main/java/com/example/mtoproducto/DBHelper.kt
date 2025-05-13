@@ -71,10 +71,10 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, "mibase.db" , null,
         return result
     }
 
-    fun deleteProduct(nombre:String): Boolean{
+    fun deleteProduct(id:String): Boolean{
         val db = this.writableDatabase
         return try {
-            val filas = db.delete(tableName, "$columnName=?", arrayOf(nombre))
+            val filas = db.delete(tableName, "$columnId=?", arrayOf(id))
             filas > 0
         } catch (e: Exception) {
             false
@@ -83,16 +83,36 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, "mibase.db" , null,
         }
     }
 
-    fun updateProduct(db: SQLiteDatabase, id:Int ,nombre: String, precio: String, descripcion: String?, imagen: String?): Int{
+    fun updateProduct(db: SQLiteDatabase, id: String, nombre: String, precio: String, descripcion: String?, imagen: String?): Int{
         val cv = ContentValues().apply {
             put(columnName,nombre)
             put(columnPrice,precio)
             put(columnDescription,descripcion)
             put(columnImage,imagen)
         }
-        val result = db.update(tableName,cv,"$columnId=?",arrayOf(id.toString()))
+        val result = db.update(tableName,cv,"$columnId=?",arrayOf(id))
         db.close()
         return result
+    }
+
+    fun getProductById(id:String):Producto?{
+        val db = this.readableDatabase
+        val cursor = db.query(tableName,arrayOf(columnId, columnName, columnPrice, columnDescription, columnImage),"$columnId=?",arrayOf(id),null,null,null)
+
+        return if (cursor.moveToFirst()) {
+            Producto(
+                id = cursor.getString(0),
+                name = cursor.getString(1),
+                price = cursor.getString(2),
+                description = cursor.getString(3) ?: "",
+                imagen = cursor.getString(4) ?: ""
+            )
+        } else {
+            null
+        }.also {
+            cursor.close()
+            db.close()
+        }
     }
 
 

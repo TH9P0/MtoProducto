@@ -10,7 +10,7 @@ import android.util.Base64
 import java.io.ByteArrayOutputStream
 
 class DBHelper(context: Context) : SQLiteOpenHelper(context, "mibase.db" , null, 1) {
-
+    
     val tableName = "producto"
     val columnId = "id_producto"
     val columnName = "nombre"

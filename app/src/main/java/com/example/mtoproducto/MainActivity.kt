@@ -1,6 +1,10 @@
 package com.example.mtoproducto
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
 import android.database.Cursor
+import android.graphics.Bitmap
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -38,7 +42,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -47,17 +50,29 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import android.graphics.BitmapFactory
+import android.media.MediaScannerConnection
+import android.net.Uri
+import android.os.Environment
 import android.util.Base64
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.ImageBitmapConfig
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -65,6 +80,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.mtoproducto.ui.theme.MtoProductoTheme
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import androidx.core.graphics.scale
+import androidx.core.graphics.createBitmap
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -115,6 +138,68 @@ fun ProductoMto(id:String?){
     var precio by remember { mutableStateOf("") }
     var descripcion by remember { mutableStateOf("") }
     var imagen by remember { mutableStateOf("") }
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+    var imageFile by remember { mutableStateOf<File?>(null) }
+    var capturedImageBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
+    var savedImageFile by remember {mutableStateOf<File?>(null)}
+
+    // Función para procesar la imagen seleccionada/capturada
+    fun processImage(uri: Uri?) {
+        uri?.let {
+            try {
+                val inputStream = context.contentResolver.openInputStream(it)
+                val originalBitmap = BitmapFactory.decodeStream(inputStream)
+                inputStream?.close()
+
+                // Redimensionar a 100x100
+                val thumbnailBitmap = originalBitmap?.resizeToThumbnail()
+
+                // Guardar en almacenamiento interno
+                val fileName = generateImageFileName()
+                val savedFile = thumbnailBitmap?.let { bitmap ->
+                    context.saveImageToPublicFolder(bitmap, fileName)
+                }
+
+                // Convertir a Base64 para la base de datos
+                val byteArrayOutputStream = ByteArrayOutputStream()
+                thumbnailBitmap?.compress(Bitmap.CompressFormat.JPEG, 80, byteArrayOutputStream)
+                val byteArray = byteArrayOutputStream.toByteArray()
+                val base64Image = Base64.encodeToString(byteArray, Base64.DEFAULT)
+
+                // Actualizar estados
+                imagen = base64Image
+                savedImageFile = savedFile
+                capturedImageBitmap = thumbnailBitmap?.asImageBitmap()
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(context, "Error al procesar la imagen", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    val galleryLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
+        imageUri = uri
+        processImage(uri)
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success) {
+            imageUri = FileProvider.getUriForFile(context, "${context.packageName}.provider", imageFile!!)
+            processImage(imageUri)
+        }
+    }
+
+    val cameraPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if(granted){
+            Toast.makeText(context, "Permiso de camara otorgado", Toast.LENGTH_SHORT).show()
+            imageFile = context.createImageFile()
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider",imageFile!!)
+            cameraLauncher.launch(uri)
+        } else{
+            Toast.makeText(context, "Esta funcion necesita permisos de camara", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     LaunchedEffect(id) {
         if (!id.isNullOrEmpty()) {
@@ -124,6 +209,16 @@ fun ProductoMto(id:String?){
                 precio = it.price
                 descripcion = it.description
                 imagen = it.imagen
+
+                if (it.imagen.isNotEmpty()) {
+                    try {
+                        val imageBytes = Base64.decode(it.imagen, Base64.DEFAULT)
+                        val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                        capturedImageBitmap = bitmap?.asImageBitmap()
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Error al cargar la imagen", Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
         }
     }
@@ -142,32 +237,84 @@ fun ProductoMto(id:String?){
         OutlinedTextField(value = descripcion, onValueChange = {descripcion = it}, label = {Text("Descripcion")}, modifier =  Modifier.fillMaxWidth())
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), Arrangement.SpaceEvenly) {
-            Button(onClick = {/*TODO: Elaborar logica para tomar foto*/}) { Text("Tomar foto") }
-            Button(onClick = {/*TODO: Elaborar logica para tomar foto*/}) { Text("Subir desde la galeria") }
+            Button(
+                onClick = {
+                    val hasCameraPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+
+                    if (hasCameraPermission) {
+                        imageFile = context.createImageFile()
+                        imageFile?.let { file ->
+                            val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+                            cameraLauncher.launch(uri)
+                        }
+                    } else {
+                        cameraPermission.launch(Manifest.permission.CAMERA)
+                    }
+                }
+            ) { Text("Tomar foto") }
+            Button(onClick = {galleryLauncher.launch("image/*")}) { Text("Subir desde la galeria") }
         }
         Spacer(Modifier.height(8.dp))
-        // Mostrar imagen actual si existe
-        if (imagen.isNotEmpty()) {
-            val imageBitmap = remember(imagen) {
-                try {
-                    val imageBytes = Base64.decode(imagen, Base64.DEFAULT)
-                    BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)?.asImageBitmap()
-                } catch (e: Exception) {
-                    null
-                }
-            }
 
-            imageBitmap?.let {
+        // Visualización de imagen
+        Box(
+            modifier = Modifier
+                .size(100.dp)
+                .align(Alignment.CenterHorizontally)
+                .clickable {
+                    capturedImageBitmap?.let { imageBitmap ->
+                        try {
+                            // Crea una copia nueva del bitmap
+                            val bitmap = imageBitmap.asAndroidBitmap().copy(Bitmap.Config.ARGB_8888, false)
+
+                            if (bitmap != null && !bitmap.isRecycled) {
+                                val file = context.saveImageToPublicFolder(bitmap, generateImageFileName())
+                                file?.let {
+                                    Toast.makeText(
+                                        context,
+                                        "Imagen guardada en: ${it.absolutePath}",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                } ?: run {
+                                    Toast.makeText(
+                                        context,
+                                        "Error: Archivo no creado",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Error: Bitmap no válido",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(
+                                context,
+                                "Error crítico: ${e.message}",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+                }
+        ) {
+            if (capturedImageBitmap != null) {
                 Image(
-                    bitmap = it,
-                    contentDescription = "Imagen actual",
-                    modifier = Modifier
-                        .size(100.dp)
-                        .align(Alignment.CenterHorizontally),
+                    bitmap = capturedImageBitmap!!,
+                    contentDescription = "Imagen del producto",
+                    modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = "Seleccionar imagen",
+                    modifier = Modifier.size(48.dp).align(Alignment.Center)
                 )
             }
         }
+
         Spacer(Modifier.height(8.dp))
         Button(
             onClick = {
@@ -445,4 +592,83 @@ fun PreviewProductCard() {
             onDelete = {}
         )
     }
+}
+
+fun Bitmap.resizeToThumbnail(): Bitmap {
+    return this.scale(100, 100)
+}
+
+// Función para guardar imagen en la carpeta de la aplicación
+fun Context.saveImageToPublicFolder(bitmap: Bitmap, fileName: String): File? {
+    return try {
+        // Verifica si el bitmap es válido
+        if (bitmap.isRecycled || bitmap.width <= 0 || bitmap.height <= 0) {
+            Toast.makeText(this, "Bitmap inválido", Toast.LENGTH_SHORT).show()
+            return null
+        }
+
+        val appName = getString(R.string.app_name)
+        val directory = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+            appName
+        ).apply {
+            if (!exists()) mkdirs()
+        }
+
+        val file = File(directory, "$fileName.jpg")
+        FileOutputStream(file).use { fos ->
+            if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 95, fos)) {
+                Toast.makeText(this, "Error al comprimir", Toast.LENGTH_SHORT).show()
+                return null
+            }
+            fos.flush()
+        }
+
+        // Notifica al sistema sobre el nuevo archivo
+        MediaScannerConnection.scanFile(this, arrayOf(file.absolutePath), null, null)
+
+        file
+    } catch (e: Exception) {
+        Toast.makeText(this, "Error al guardar: ${e.message}", Toast.LENGTH_SHORT).show()
+        null
+    }
+}
+
+// Función para crear nombre de archivo único
+fun generateImageFileName(): String {
+    val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+    return "PRODUCT_IMG_$timeStamp"
+}
+
+fun Context.createImageFile(fileName: String = generateImageFileName()): File {
+    val storageDir = File(filesDir, "product_images").apply {
+        if (!exists()) mkdirs()
+    }
+    return File(storageDir, "$fileName.jpg").also { file ->
+        file.createNewFile() // Crea el archivo explícitamente
+    }
+}
+
+fun ImageBitmap.asAndroidBitmap(): Bitmap {
+    val config = if (this.config == ImageBitmapConfig.Argb8888) {
+        Bitmap.Config.ARGB_8888
+    } else {
+        Bitmap.Config.RGB_565
+    }
+
+    val bitmap = Bitmap.createBitmap(this.width, this.height, config)
+    val buffer = IntArray(this.width * this.height)
+
+    this.readPixels(
+        buffer,
+        0,
+        this.width,
+        0,
+        0,
+        this.width,
+        this.height
+    )
+    bitmap.setPixels(buffer, 0, this.width, 0, 0, this.width, this.height)
+
+    return bitmap
 }

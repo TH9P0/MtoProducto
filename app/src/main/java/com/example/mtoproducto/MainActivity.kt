@@ -73,7 +73,6 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.graphics.scale
-import androidx.documentfile.provider.DocumentFile
 import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -83,6 +82,7 @@ import androidx.navigation.navArgument
 import com.example.mtoproducto.ui.theme.MtoProductoTheme
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -336,23 +336,12 @@ private fun Context.getSaveFolderUri(): Uri? =
         ?.let { Uri.parse(it) }
 
 fun Context.saveImageToSelectedFolder(bitmap: Bitmap, fileName: String): Boolean {
-    val treeUri = getSaveFolderUri() ?: run {
-        Toast.makeText(this, "Selecciona carpeta primero", Toast.LENGTH_SHORT).show()
-        return false
-    }
     return try {
-        require(!bitmap.isRecycled)
-        val docFolder = DocumentFile.fromTreeUri(this, treeUri)
-            ?: throw IllegalStateException("No acceso al directorio")
-        val newFile = docFolder.createFile("image/jpeg", "$fileName.jpg")
-            ?: throw IllegalStateException("No se creó el archivo")
-        contentResolver.openOutputStream(newFile.uri).use { out ->
-            requireNotNull(out)
-            if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)) {
-                throw IllegalStateException("Compresión fallida")
-            }
+        val file = File(getExternalFilesDir(null), "$fileName.jpg")
+        FileOutputStream(file).use { out ->
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
         }
-        MediaScannerConnection.scanFile(this, arrayOf(newFile.uri.path), null, null)
+        MediaScannerConnection.scanFile(this, arrayOf(file.path), null, null)
         true
     } catch (e: Exception) {
         Toast.makeText(this, "Error al guardar: ${e.message}", Toast.LENGTH_LONG).show()

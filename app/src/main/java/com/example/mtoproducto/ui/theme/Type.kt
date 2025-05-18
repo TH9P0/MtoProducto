@@ -1,4 +1,4 @@
-package com.example.mtoproducto.ui.theme
+package com.example.sharedpreferences.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

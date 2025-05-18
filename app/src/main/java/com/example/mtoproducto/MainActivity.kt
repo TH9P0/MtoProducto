@@ -62,6 +62,7 @@ import java.util.Date
 import java.util.Locale
 import androidx.core.net.toUri
 import androidx.core.graphics.createBitmap
+import androidx.navigation.NavHostController
 import com.example.mtoproducto.screens.ProductoMto
 import com.example.mtoproducto.screens.UIPrincipal
 
@@ -83,6 +84,10 @@ fun Navegacion(){
         composable("PantallaPrincipal"){
             UIPrincipal(navController)
         }
+        // En MainActivity.kt o donde esté tu NavHost
+        composable("ColorPicker") {
+            ColorPickerScreen(navController)
+        }
         composable(
             "ProductoMto?id={id}",
             arguments = listOf(navArgument("id") {
@@ -90,6 +95,7 @@ fun Navegacion(){
                 nullable = true
                 defaultValue = null
             })
+
         ){ backStackEntry ->
             ProductoMto(
                 id = backStackEntry.arguments?.getString("id"),
@@ -97,6 +103,11 @@ fun Navegacion(){
             )
         }
     }
+}
+
+@Composable
+fun ColorPickerScreen(x0: NavHostController) {
+    RGBColorPicker()
 }
 
 @Composable

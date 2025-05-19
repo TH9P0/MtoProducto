@@ -22,7 +22,6 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import com.example.sharedpreferences.com.example.mtoproducto.PreferenceHelper
 
 @Composable
 fun RGBColorPicker(context: Context) {

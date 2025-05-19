@@ -7,6 +7,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.example.mtoproducto.PreferenceHelper
 import com.example.sharedpreferences.ui.theme.Typography
+import android.graphics.Color.*
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 
 @Composable
 fun MtoProductoTheme(
@@ -14,14 +18,26 @@ fun MtoProductoTheme(
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
-    val preferenceHelper = PreferenceHelper(context)
-    val hexColor = preferenceHelper.obtenerColorUsuario()
-    val userColor = hexColor?.let { Color(android.graphics.Color.parseColor(it)) } ?: Purple40
+    val preferenceHelper = remember { PreferenceHelper(context) }
+    val hexColor by remember { mutableStateOf(preferenceHelper.leerColorUsuario()) }
+
+    val colorUsuario = hexColor?.let {
+        try { Color(parseColor(it)) }
+        catch (e: Exception) { Purple40 }
+    } ?: Purple40
 
     val colorScheme = if (darkTheme) {
-        darkColorScheme(primary = userColor, secondary = PurpleGrey80, tertiary = Pink80)
+        darkColorScheme(
+            primary = colorUsuario,
+            background = colorUsuario.copy(alpha = 0.2f),
+            surface = colorUsuario.copy(alpha = 0.1f)
+        )
     } else {
-        lightColorScheme(primary = userColor, secondary = PurpleGrey40, tertiary = Pink40)
+        lightColorScheme(
+            primary = colorUsuario,
+            background = colorUsuario.copy(alpha = 0.1f),
+            surface = Color.White
+        )
     }
 
     MaterialTheme(

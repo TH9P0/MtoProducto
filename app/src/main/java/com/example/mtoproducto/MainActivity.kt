@@ -59,9 +59,7 @@ import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import androidx.core.net.toUri
 import androidx.core.graphics.createBitmap
-import androidx.navigation.NavHostController
 import com.example.mtoproducto.screens.ProductoMto
 import com.example.mtoproducto.screens.UIPrincipal
 import com.example.mtoproducto.ui.theme.MtoProductoTheme
@@ -146,11 +144,6 @@ fun SelectSaveFolderButton(
         Text("Elegir carpeta destino")
     }
 }
-
-private fun Context.getSaveFolderUri(): Uri? =
-    getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-        .getString("save_folder_uri", null)
-        ?.let { it.toUri() }
 
 fun Context.saveImageToSelectedFolder(bitmap: Bitmap, fileName: String): Boolean {
     return try {
@@ -247,9 +240,4 @@ fun PreviewProductCard() {
     MtoProductoTheme {
         ProductCard(Producto("","Ejemplo","0.00","Desc",""), rememberNavController()) {}
     }
-}
-
-@Composable
-fun MtoProductoTheme(content: @Composable () -> Unit) {
-
 }

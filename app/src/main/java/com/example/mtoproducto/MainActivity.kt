@@ -54,7 +54,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.mtoproducto.ui.theme.MtoProductoTheme
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -107,7 +106,7 @@ fun Navegacion(){
 
 @Composable
 fun ColorPickerScreen(x0: NavHostController) {
-    RGBColorPicker()
+    RGBColorPicker(context = LocalContext.current)
 }
 
 @Composable
@@ -251,4 +250,9 @@ fun PreviewProductCard() {
     MtoProductoTheme {
         ProductCard(Producto("","Ejemplo","0.00","Desc",""), rememberNavController()) {}
     }
+}
+
+@Composable
+fun MtoProductoTheme(content: @Composable () -> Unit) {
+    TODO("Not yet implemented")
 }

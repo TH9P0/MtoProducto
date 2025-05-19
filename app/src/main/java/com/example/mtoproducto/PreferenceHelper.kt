@@ -1,8 +1,8 @@
-package com.example.sharedpreferences
+package com.example.sharedpreferences.com.example.mtoproducto
 
 import android.content.Context
 
-class PreferenceHelper(context:Context) {
+class PreferenceHelper(context: Context) {
     private val prefs = context.getSharedPreferences("mis_preferencias", Context.MODE_PRIVATE)
 
     /* Codigo de Preferencias de nombre
@@ -13,12 +13,15 @@ class PreferenceHelper(context:Context) {
     fun leerNombreUsuario(): String{
         return prefs.getString("nombre_usuario","") ?: ""
     }*/
-    
+
     fun guardarColorUsuario(colorFavorito: String){
         prefs.edit().putString("color_favorito",colorFavorito).apply()
     }
 
     fun leerColorUsuario(): String{
         return prefs.getString("color_favorito","") ?: ""
+    }
+    fun obtenerColorUsuario(): String? {
+        return prefs.getString("color_favorito", null)
     }
 }

@@ -1,5 +1,6 @@
 package com.example.mtoproducto
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -21,9 +22,10 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import com.example.sharedpreferences.com.example.mtoproducto.PreferenceHelper
 
 @Composable
-fun RGBColorPicker() {
+fun RGBColorPicker(context: Context) {
     var red by remember { mutableStateOf(255f) }
     var green by remember { mutableStateOf(0f) }
     var blue by remember { mutableStateOf(0f) }
@@ -59,6 +61,15 @@ fun RGBColorPicker() {
             fontWeight = FontWeight.Bold,
             fontSize = 18.sp
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Botón para guardar el color
+        androidx.compose.material3.Button(onClick = {
+            SaveColorPreference(color, context)
+        }) {
+            Text("Guardar Color")
+        }
     }
 }
 
@@ -90,4 +101,10 @@ fun Color.toHex(): String {
     val g = (green * 255).toInt().coerceIn(0, 255)
     val b = (blue * 255).toInt().coerceIn(0, 255)
     return String.format("#%02X%02X%02X", r, g, b)
+}
+
+fun SaveColorPreference(color: Color, context: Context) {
+    val hexColor = color.toHex()
+    val preferenceHelper = PreferenceHelper(context)
+    preferenceHelper.guardarColorUsuario(hexColor)
 }

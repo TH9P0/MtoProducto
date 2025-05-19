@@ -1,4 +1,4 @@
-package com.example.sharedpreferences.com.example.mtoproducto
+package com.example.mtoproducto
 
 import android.content.Context
 

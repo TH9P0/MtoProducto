@@ -1,17 +1,16 @@
-package com.example.sharedpreferences.ui.theme
+package com.example.mtoproducto.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import com.example.sharedpreferences.com.example.mtoproducto.PreferenceHelper
+import com.example.mtoproducto.PreferenceHelper
+import com.example.sharedpreferences.ui.theme.Typography
 
 @Composable
-fun SharedPreferencesTheme(
+fun MtoProductoTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current

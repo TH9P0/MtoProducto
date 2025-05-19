@@ -1,6 +1,8 @@
 package com.example.mtoproducto
 
+import android.app.Activity
 import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -9,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -64,8 +67,9 @@ fun RGBColorPicker(context: Context) {
         Spacer(modifier = Modifier.height(16.dp))
 
         // Botón para guardar el color
-        androidx.compose.material3.Button(onClick = {
-            SaveColorPreference(color, context)
+        Button(onClick = {
+            saveColorPreference(color, context)
+            (context as Activity).recreate()  // Reinicia la actividad
         }) {
             Text("Guardar Color")
         }
@@ -102,8 +106,9 @@ fun Color.toHex(): String {
     return String.format("#%02X%02X%02X", r, g, b)
 }
 
-fun SaveColorPreference(color: Color, context: Context) {
+fun saveColorPreference(color: Color, context: Context) {
     val hexColor = color.toHex()
     val preferenceHelper = PreferenceHelper(context)
     preferenceHelper.guardarColorUsuario(hexColor)
+    Toast.makeText(context, "Color guardado: $hexColor", Toast.LENGTH_SHORT).show()
 }

@@ -1,4 +1,4 @@
-package com.example.sharedpreferences.ui.theme
+package com.example.mtoproducto.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

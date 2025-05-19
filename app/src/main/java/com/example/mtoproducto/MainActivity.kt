@@ -64,8 +64,10 @@ import androidx.core.graphics.createBitmap
 import androidx.navigation.NavHostController
 import com.example.mtoproducto.screens.ProductoMto
 import com.example.mtoproducto.screens.UIPrincipal
+import com.example.mtoproducto.ui.theme.MtoProductoTheme
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -78,14 +80,14 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun Navegacion(){
+    val context = LocalContext.current
     val navController = rememberNavController()
     NavHost(navController, startDestination = "PantallaPrincipal"){
         composable("PantallaPrincipal"){
             UIPrincipal(navController)
         }
-        // En MainActivity.kt o donde esté tu NavHost
         composable("ColorPicker") {
-            ColorPickerScreen(navController)
+            RGBColorPicker(context)
         }
         composable(
             "ProductoMto?id={id}",
@@ -102,11 +104,6 @@ fun Navegacion(){
             )
         }
     }
-}
-
-@Composable
-fun ColorPickerScreen(x0: NavHostController) {
-    RGBColorPicker(context = LocalContext.current)
 }
 
 @Composable

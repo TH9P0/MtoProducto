@@ -1,9 +1,12 @@
 package com.example.mtoproducto.screens
 
 import android.Manifest
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.media.MediaScannerConnection
 import android.net.Uri
 import android.util.Base64
 import android.widget.Toast
@@ -22,9 +25,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,20 +50,23 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.core.graphics.scale
 import androidx.navigation.NavController
 import com.example.mtoproducto.DBHelper
-import com.example.mtoproducto.SelectSaveFolderButton
-import com.example.mtoproducto.createImageFile
-import com.example.mtoproducto.generateImageFileName
-import com.example.mtoproducto.resizeToThumbnail
-import com.example.mtoproducto.saveImageToSelectedFolder
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import androidx.core.content.edit
 
 @Composable
 fun ProductoMto(id:String?, navController: NavController){
@@ -73,7 +82,6 @@ fun ProductoMto(id:String?, navController: NavController){
     var capturedImageBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
 
 
-    // 2) Procesar imagen capturada o subida
     fun processImage(uri: Uri?) {
         uri?.let {
             try {
@@ -158,19 +166,30 @@ fun ProductoMto(id:String?, navController: NavController){
 
     Column(Modifier
         .fillMaxSize()
-        .padding(16.dp)
         .background(MaterialTheme.colorScheme.background)
+        .padding(16.dp)
     ){
-        //boton regreso a pantalla principal
-        IconButton(onClick = { navController.popBackStack() }) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar")
+        Box(modifier = Modifier.fillMaxWidth()) {
+            // Botón de regreso (alineado a la izquierda)
+            IconButton(
+                onClick = { navController.popBackStack() },
+                modifier = Modifier.align(Alignment.CenterStart)
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Regresar",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            // Título perfectamente centrado
+            Text(
+                text = if (id != null) "Editar Producto" else "Agregar Producto",
+                modifier = Modifier.align(Alignment.Center),
+                style = MaterialTheme.typography.headlineMedium,
+                fontSize = 24.sp
+            )
         }
-        Text(
-            text = if (id != null) "Editar Producto" else "Agregar Producto",
-            fontSize = 24.sp,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
         Spacer(Modifier.height(8.dp))
         if (!id.isNullOrEmpty()) {
             Text("ID: $id", textAlign = TextAlign.Center, fontSize = 20.sp, modifier = Modifier.fillMaxWidth())
@@ -178,51 +197,119 @@ fun ProductoMto(id:String?, navController: NavController){
         }
         OutlinedTextField(value = nombre, onValueChange = { nombre = it }, label = { Text("Nombre*") }, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(8.dp))
-        OutlinedTextField(value = precio, onValueChange = { precio = it }, label = { Text("Precio*") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(
+            value = precio,
+            onValueChange = { nuevoValor ->
+                precio = nuevoValor.filter {
+                    it.isDigit() || it == '.' && !precio.contains('.')
+                }
+            },
+            label = { Text("Precio*") },
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions.Default.copy(
+                keyboardType = KeyboardType.Number,
+                imeAction = ImeAction.Done
+            )
+        )
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(value = descripcion, onValueChange = { descripcion = it }, label = { Text("Descripción") }, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), Arrangement.SpaceEvenly) {
-            Button(onClick = {
-                if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
-                    == PackageManager.PERMISSION_GRANTED) {
-                    imageFile = context.createImageFile()
-                    imageFile?.let { file ->
-                        val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
-                        cameraLauncher.launch(uri)
+            IconButton(
+                onClick = {
+                    if (ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.CAMERA
+                        ) == PackageManager.PERMISSION_GRANTED
+                    ) {
+                        imageFile = context.createImageFile()
+                        imageFile?.let { file ->
+                            val uri = FileProvider.getUriForFile(
+                                context,
+                                "${context.packageName}.provider",
+                                file
+                            )
+                            cameraLauncher.launch(uri)
+                        }
+                    } else {
+                        cameraPermission.launch(Manifest.permission.CAMERA)
                     }
-                } else cameraPermission.launch(Manifest.permission.CAMERA)
-            }) { Text("Tomar foto") }
-            Button(onClick = { galleryLauncher.launch("image/*") }) { Text("Galería") }
+                },
+                modifier = Modifier.size(64.dp)
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Filled.CameraAlt,
+                        contentDescription = "Tomar foto",
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Text("Tomar foto", style = MaterialTheme.typography.labelSmall)
+                }
+            }
+
+            // Botón para galería
+            IconButton(
+                onClick = { galleryLauncher.launch("image/*") },
+                modifier = Modifier.size(64.dp)
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Filled.AddPhotoAlternate,
+                        contentDescription = "Abrir galería",
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Text("Galería", style = MaterialTheme.typography.labelSmall)
+                }
+            }
         }
         //  Botón para seleccionar carpeta destino
-        Modifier.padding(12.dp)
-        SelectSaveFolderButton()
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            SelectSaveFolderButton(
+                modifier = Modifier.padding(vertical = 12.dp)
+            )
+        }
 
         Spacer(Modifier.height(8.dp))
+        Text("Para guardar la imagen, haz \"click\" sobre ella.", textAlign = TextAlign.Center, fontSize = 24.sp)
+        Spacer(Modifier.height(12.dp))
         Box(
             Modifier
                 .size(100.dp)
                 .align(Alignment.CenterHorizontally)
                 .clickable {
                     Toast.makeText(context, "Imagen guardada", Toast.LENGTH_SHORT).show()
-                }
+                }, Alignment.Center
         ) {
             capturedImageBitmap?.let {
-                Image(bitmap = it, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            } ?: Icon(Icons.Filled.Warning, contentDescription = null, modifier = Modifier.size(48.dp))
+                Image(
+                    bitmap = it,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } ?: Icon(
+                Icons.Filled.Image,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp)
+            )
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(12.dp))
+        Text("Los campos con un \"*\" son obligatorios.",  textAlign = TextAlign.Center, fontSize = 24.sp)
+        Spacer(Modifier.height(4.dp))
         Button(onClick = {
             if (nombre.isBlank() || precio.isBlank()) {
                 Toast.makeText(context, "Nombre y precio obligatorios", Toast.LENGTH_SHORT).show()
                 return@Button
             }
             val db = auxSQLite.writableDatabase
+            val cleanDescription = if (descripcion.isBlank()) null else descripcion
             val success = if (id != null)
-                auxSQLite.updateProduct(db, id, nombre, precio, descripcion, imagen) > 0
+                auxSQLite.updateProduct(db, id, nombre, precio, cleanDescription, imagen) > 0
             else
-                auxSQLite.addProduct(nombre, precio, descripcion, imagen)?.let { it != -1L } == true
+                auxSQLite.addProduct(nombre, precio, cleanDescription, imagen)?.let { it != -1L } == true
             db.close()
             if (success) navController.popBackStack() else Toast.makeText(context, "Error al guardar", Toast.LENGTH_SHORT).show()
         }, modifier = Modifier.fillMaxWidth()) {
@@ -230,3 +317,56 @@ fun ProductoMto(id:String?, navController: NavController){
         }
     }
 }
+
+@Composable
+fun SelectSaveFolderButton(
+    modifier: Modifier = Modifier,
+    onFolderSelected: () -> Unit = {}
+) {
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { treeUri: Uri? ->
+        treeUri?.let {
+            context.contentResolver.takePersistableUriPermission(
+                it,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            )
+            context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                .edit { putString("save_folder_uri", it.toString()) }
+            Toast.makeText(context, "Carpeta seleccionada", Toast.LENGTH_SHORT).show()
+            onFolderSelected()
+        }
+    }
+
+    Button(
+        onClick = { launcher.launch(null) },
+        modifier = modifier,
+    ) {
+        Text("Elegir carpeta destino")
+    }
+}
+
+fun Context.saveImageToSelectedFolder(bitmap: Bitmap, fileName: String): Boolean {
+    return try {
+        val file = File(getExternalFilesDir(null), "$fileName.jpg")
+        FileOutputStream(file).use { out ->
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+        }
+        MediaScannerConnection.scanFile(this, arrayOf(file.path), null, null)
+        true
+    } catch (e: Exception) {
+        Toast.makeText(this, "Error al guardar: ${e.message}", Toast.LENGTH_LONG).show()
+        false
+    }
+}
+
+fun Bitmap.resizeToThumbnail(): Bitmap = this.scale(100, 100)
+
+fun Context.createImageFile(fileName: String = generateImageFileName()): File {
+    val storageDir = File(filesDir, "product_images").apply { if (!exists()) mkdirs() }
+    return File(storageDir, "${fileName}.jpg").also { if (!it.exists()) it.createNewFile() }
+}
+
+fun generateImageFileName(): String =
+    "PRODUCT_IMG_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}"

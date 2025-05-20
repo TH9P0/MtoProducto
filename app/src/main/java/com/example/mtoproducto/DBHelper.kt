@@ -8,6 +8,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Base64
 import java.io.ByteArrayOutputStream
+import androidx.core.graphics.scale
 
 class DBHelper(context: Context) : SQLiteOpenHelper(context, "mibase.db" , null, 1) {
     
@@ -104,7 +105,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, "mibase.db" , null,
                 id = cursor.getString(0),
                 name = cursor.getString(1),
                 price = cursor.getString(2),
-                description = cursor.getString(3) ?: "",
+                description = cursor.getString(3) ?: "Sin descripcion",
                 imagen = cursor.getString(4) ?: ""
             )
         } else {
@@ -119,7 +120,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, "mibase.db" , null,
 
     fun convertImageToBase64(context: Context, drawableId: Int): String {
         val bitmap = BitmapFactory.decodeResource(context.resources, drawableId)
-        val scaledBitmap =  Bitmap.createScaledBitmap(bitmap, 100, 100, true)
+        val scaledBitmap = bitmap.scale(100, 100)
 
         val byteArrayOutputStream = ByteArrayOutputStream()
         scaledBitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream)

@@ -1,4 +1,4 @@
-package com.example.mtoproducto
+package com.example.mtoproducto.screens
 
 import android.app.Activity
 import android.content.Context
@@ -8,14 +8,20 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -23,20 +29,48 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.navigation.NavController
+import com.example.mtoproducto.PreferenceHelper
 
 @Composable
-fun RGBColorPicker(context: Context) {
-    var red by remember { mutableStateOf(255f) }
-    var green by remember { mutableStateOf(0f) }
-    var blue by remember { mutableStateOf(0f) }
+fun RGBColorPicker(context: Context, navController: NavController) {
+    var red by remember { mutableFloatStateOf(255f) }
+    var green by remember { mutableFloatStateOf(0f) }
+    var blue by remember { mutableFloatStateOf(0f) }
 
     val color = Color(red / 255f, green / 255f, blue / 255f)
 
     Column(modifier = Modifier
-        .fillMaxWidth()
-        .padding(16.dp)) {
+        .fillMaxSize()
+        .background(MaterialTheme.colorScheme.background)
+        .padding(16.dp))
+    {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            // Botón de regreso (alineado a la izquierda)
+            IconButton(
+                onClick = { navController.popBackStack() },
+                modifier = Modifier.align(Alignment.CenterStart)
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Regresar",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            // Título perfectamente centrado
+            Text(
+                text = "Preferencias",
+                modifier = Modifier.align(Alignment.Center),
+                style = MaterialTheme.typography.headlineMedium,
+                fontSize = 24.sp
+            )
+        }
 
         Text("Selecciona un color:", fontWeight = FontWeight.Bold)
 

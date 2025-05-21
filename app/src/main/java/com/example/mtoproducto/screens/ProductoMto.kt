@@ -25,9 +25,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddPhotoAlternate
@@ -166,162 +165,174 @@ fun ProductoMto(id:String?, navController: NavController){
         }
     }
 
-    Column(Modifier
-        .fillMaxSize()
-        .background(MaterialTheme.colorScheme.background)
-        .padding(16.dp)
-        .verticalScroll(rememberScrollState())
-    ){
-        Box(modifier = Modifier.fillMaxWidth()) {
-            // Botón de regreso (alineado a la izquierda)
-            IconButton(
-                onClick = {
-                    if(!pulsado){
-                        navController.popBackStack()
-                        pulsado = true
-                    } },
-                modifier = Modifier.align(Alignment.CenterStart)
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Regresar",
-                    modifier = Modifier.size(24.dp)
+    LazyColumn(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        item {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                IconButton(
+                    onClick = {
+                        if(!pulsado){
+                            navController.popBackStack()
+                            pulsado = true
+                        } },
+                    modifier = Modifier.align(Alignment.CenterStart)
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Regresar",
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                Text(
+                    text = if (id != null) "Editar Producto" else "Agregar Producto",
+                    modifier = Modifier.align(Alignment.Center),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontSize = 24.sp
                 )
             }
+        }
 
-            // Título perfectamente centrado
-            Text(
-                text = if (id != null) "Editar Producto" else "Agregar Producto",
-                modifier = Modifier.align(Alignment.Center),
-                style = MaterialTheme.typography.headlineMedium,
-                fontSize = 24.sp
-            )
-        }
-        Spacer(Modifier.height(8.dp))
         if (!id.isNullOrEmpty()) {
-            Text("ID: $id", textAlign = TextAlign.Center, fontSize = 20.sp, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(8.dp))
+            item {
+                Text("ID: $id", textAlign = TextAlign.Center, fontSize = 20.sp, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(8.dp))
+            }
         }
-        OutlinedTextField(value = nombre, onValueChange = { nombre = it }, label = { Text("Nombre*") }, modifier = Modifier.fillMaxWidth())
-        Spacer(Modifier.height(8.dp))
-        OutlinedTextField(
-            value = precio,
-            onValueChange = { nuevoValor ->
-                precio = nuevoValor.filter {
-                    it.isDigit() || it == '.' && !precio.contains('.')
-                }
-            },
-            label = { Text("Precio*") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions.Default.copy(
-                keyboardType = KeyboardType.Number,
-                imeAction = ImeAction.Done
-            )
-        )
-        Spacer(Modifier.height(8.dp))
-        OutlinedTextField(value = descripcion, onValueChange = { descripcion = it }, label = { Text("Descripción") }, modifier = Modifier.fillMaxWidth())
-        Spacer(Modifier.height(8.dp))
-        Row(Modifier.fillMaxWidth(), Arrangement.SpaceEvenly) {
-            IconButton(
-                onClick = {
-                    if (ContextCompat.checkSelfPermission(
-                            context,
-                            Manifest.permission.CAMERA
-                        ) == PackageManager.PERMISSION_GRANTED
-                    ) {
-                        imageFile = context.createImageFile()
-                        imageFile?.let { file ->
-                            val uri = FileProvider.getUriForFile(
-                                context,
-                                "${context.packageName}.provider",
-                                file
-                            )
-                            cameraLauncher.launch(uri)
-                        }
-                    } else {
-                        cameraPermission.launch(Manifest.permission.CAMERA)
+
+        item {
+            OutlinedTextField(value = nombre, onValueChange = { nombre = it }, label = { Text("Nombre*") }, modifier = Modifier.fillMaxWidth())
+        }
+
+        item {
+            OutlinedTextField(
+                value = precio,
+                onValueChange = { nuevoValor ->
+                    if (nuevoValor.matches(Regex("^\\d*\\.?\\d*$"))) {
+                        precio = nuevoValor
                     }
                 },
-                modifier = Modifier.size(64.dp)
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Filled.CameraAlt,
-                        contentDescription = "Tomar foto",
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Text("Tomar foto", style = MaterialTheme.typography.labelSmall)
-                }
-            }
-
-            // Botón para galería
-            IconButton(
-                onClick = { galleryLauncher.launch("image/*") },
-                modifier = Modifier.size(64.dp)
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Filled.AddPhotoAlternate,
-                        contentDescription = "Abrir galería",
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Text("Galería", style = MaterialTheme.typography.labelSmall)
-                }
-            }
-        }
-        //  Botón para seleccionar carpeta destino
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            SelectSaveFolderButton(
-                modifier = Modifier.padding(vertical = 12.dp)
-            )
-        }
-
-        Spacer(Modifier.height(8.dp))
-        Text("Para guardar la imagen, haz \"click\" sobre ella.", textAlign = TextAlign.Center, fontSize = 24.sp)
-        Spacer(Modifier.height(12.dp))
-        Box(
-            Modifier
-                .size(100.dp)
-                .align(Alignment.CenterHorizontally)
-                .clickable {
-                    Toast.makeText(context, "Imagen guardada", Toast.LENGTH_SHORT).show()
-                }, Alignment.Center
-        ) {
-            capturedImageBitmap?.let {
-                Image(
-                    bitmap = it,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                label = { Text("Precio*") },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions.Default.copy(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Done
                 )
-            } ?: Icon(
-                Icons.Filled.Image,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp)
             )
         }
-        Spacer(Modifier.height(12.dp))
-        Text("Los campos con un \"*\" son obligatorios.",  textAlign = TextAlign.Center, fontSize = 24.sp)
-        Spacer(Modifier.height(4.dp))
-        Button(onClick = {
-            if (nombre.isBlank() || precio.isBlank()) {
-                Toast.makeText(context, "Nombre y precio obligatorios", Toast.LENGTH_SHORT).show()
-                return@Button
-            }
-            val db = auxSQLite.writableDatabase
-            val cleanDescription = if (descripcion.isBlank()) null else descripcion
-            val success = if (id != null)
-                auxSQLite.updateProduct(db, id, nombre, precio, cleanDescription, imagen) > 0
-            else
-                auxSQLite.addProduct(nombre, precio, cleanDescription, imagen)?.let { it != -1L } == true
-            db.close()
-            if (success) navController.popBackStack() else Toast.makeText(context, "Error al guardar", Toast.LENGTH_SHORT).show()
-        }, modifier = Modifier.fillMaxWidth()) {
-            Text(if (id != null) "Actualizar" else "Agregar")
+
+        item{
+            OutlinedTextField(value = descripcion, onValueChange = { descripcion = it }, label = { Text("Descripción") }, modifier = Modifier.fillMaxWidth())
         }
+
+        item{
+            Row(Modifier.fillMaxWidth(), Arrangement.SpaceEvenly) {
+                IconButton(
+                    onClick = {
+                        if (ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.CAMERA
+                            ) == PackageManager.PERMISSION_GRANTED
+                        ) {
+                            imageFile = context.createImageFile()
+                            imageFile?.let { file ->
+                                val uri = FileProvider.getUriForFile(
+                                    context,
+                                    "${context.packageName}.provider",
+                                    file
+                                )
+                                cameraLauncher.launch(uri)
+                            }
+                        } else {
+                            cameraPermission.launch(Manifest.permission.CAMERA)
+                        }
+                    },
+                    modifier = Modifier.size(64.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Filled.CameraAlt,
+                            contentDescription = "Tomar foto",
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Text("Tomar foto", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+
+                // Botón para galería
+                IconButton(
+                    onClick = { galleryLauncher.launch("image/*") },
+                    modifier = Modifier.size(64.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Filled.AddPhotoAlternate,
+                            contentDescription = "Abrir galería",
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Text("Galería", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+        }
+
+        item{
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                SelectSaveFolderButton(
+                    modifier = Modifier.padding(vertical = 12.dp)
+                )
+            }
+        }
+
+        item{
+            Text("Para guardar la imagen, haz \"click\" sobre ella.", textAlign = TextAlign.Center, fontSize = 24.sp)
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    Modifier
+                        .size(100.dp)
+                        .align(Alignment.CenterHorizontally)
+                        .clickable {
+                            Toast.makeText(context, "Imagen guardada", Toast.LENGTH_SHORT).show()
+                        }, Alignment.Center
+                ) {
+                    capturedImageBitmap?.let {
+                        Image(
+                            bitmap = it,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } ?: Icon(
+                        Icons.Filled.Image,
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
+            }
+        }
+
+        item{
+            Text("Los campos con un \"*\" son obligatorios.",  textAlign = TextAlign.Center, fontSize = 24.sp)
+            Button(onClick = {
+                if (nombre.isBlank() || precio.isBlank()) {
+                    Toast.makeText(context, "Nombre y precio obligatorios", Toast.LENGTH_SHORT).show()
+                    return@Button
+                }
+                val db = auxSQLite.writableDatabase
+                val cleanDescription = if (descripcion.isBlank()) null else descripcion
+                val success = if (id != null)
+                    auxSQLite.updateProduct(db, id, nombre, precio, cleanDescription, imagen) > 0
+                else
+                    auxSQLite.addProduct(nombre, precio, cleanDescription, imagen)?.let { it != -1L } == true
+                db.close()
+                if (success) navController.popBackStack() else Toast.makeText(context, "Error al guardar", Toast.LENGTH_SHORT).show()
+            }, modifier = Modifier.fillMaxWidth()) {
+                Text(if (id != null) "Actualizar" else "Agregar")
+            }
+        }
+
     }
 }
 

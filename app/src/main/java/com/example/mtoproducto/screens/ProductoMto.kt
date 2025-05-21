@@ -19,24 +19,25 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -154,7 +155,7 @@ fun ProductoMto(id:String?, navController: NavController){
             auxSQLite.getProductById(id)?.let {
                 nombre = it.name
                 precio = it.price
-                descripcion = it.description
+                descripcion = if (it.description.equals("sin descripcion", ignoreCase = true)) "" else it.description
                 imagen = it.imagen
                 if (it.imagen.isNotEmpty()) {
                     val bytes = Base64.decode(it.imagen, Base64.DEFAULT)
@@ -192,129 +193,166 @@ fun ProductoMto(id:String?, navController: NavController){
             }
         }
 
-        if (!id.isNullOrEmpty()) {
-            item {
-                Text("ID: $id", textAlign = TextAlign.Center, fontSize = 20.sp, modifier = Modifier.fillMaxWidth())
-                Spacer(Modifier.height(8.dp))
-            }
-        }
-
         item {
-            OutlinedTextField(value = nombre, onValueChange = { nombre = it }, label = { Text("Nombre*") }, modifier = Modifier.fillMaxWidth())
-        }
-
-        item {
-            OutlinedTextField(
-                value = precio,
-                onValueChange = { nuevoValor ->
-                    if (nuevoValor.matches(Regex("^\\d*\\.?\\d*$"))) {
-                        precio = nuevoValor
-                    }
-                },
-                label = { Text("Precio*") },
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions.Default.copy(
-                    keyboardType = KeyboardType.Number,
-                    imeAction = ImeAction.Done
-                )
-            )
-        }
-
-        item{
-            OutlinedTextField(value = descripcion, onValueChange = { descripcion = it }, label = { Text("Descripción") }, modifier = Modifier.fillMaxWidth())
-        }
-
-        item{
-            Row(Modifier.fillMaxWidth(), Arrangement.SpaceEvenly) {
-                IconButton(
-                    onClick = {
-                        if (ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.CAMERA
-                            ) == PackageManager.PERMISSION_GRANTED
-                        ) {
-                            imageFile = context.createImageFile()
-                            imageFile?.let { file ->
-                                val uri = FileProvider.getUriForFile(
-                                    context,
-                                    "${context.packageName}.provider",
-                                    file
-                                )
-                                cameraLauncher.launch(uri)
-                            }
-                        } else {
-                            cameraPermission.launch(Manifest.permission.CAMERA)
-                        }
-                    },
-                    modifier = Modifier.size(64.dp)
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Filled.CameraAlt,
-                            contentDescription = "Tomar foto",
-                            modifier = Modifier.size(32.dp)
-                        )
-                        Text("Tomar foto", style = MaterialTheme.typography.labelSmall)
-                    }
-                }
-
-                // Botón para galería
-                IconButton(
-                    onClick = { galleryLauncher.launch("image/*") },
-                    modifier = Modifier.size(64.dp)
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Filled.AddPhotoAlternate,
-                            contentDescription = "Abrir galería",
-                            modifier = Modifier.size(32.dp)
-                        )
-                        Text("Galería", style = MaterialTheme.typography.labelSmall)
-                    }
-                }
-            }
-        }
-
-        item{
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
+            Surface(Modifier
+                .fillMaxWidth()
+                .padding(2.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.background
             ) {
-                SelectSaveFolderButton(
-                    modifier = Modifier.padding(vertical = 12.dp)
-                )
-            }
-        }
-
-        item{
-            Text("Para guardar la imagen, haz \"click\" sobre ella.", textAlign = TextAlign.Center, fontSize = 24.sp)
-            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(
-                    Modifier
-                        .size(100.dp)
-                        .align(Alignment.CenterHorizontally)
-                        .clickable {
-                            Toast.makeText(context, "Imagen guardada", Toast.LENGTH_SHORT).show()
-                        }, Alignment.Center
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    capturedImageBitmap?.let {
-                        Image(
-                            bitmap = it,
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
+                    if (!id.isNullOrEmpty()) {
+                        Text("ID: $id", textAlign = TextAlign.Center, fontSize = 20.sp, modifier = Modifier.fillMaxWidth())
+                    }
+                    OutlinedTextField(value = nombre, onValueChange = { nombre = it }, label = { Text("Nombre*") }, modifier = Modifier.fillMaxWidth())
+
+                    OutlinedTextField(
+                        value = precio,
+                        onValueChange = { nuevoValor ->
+                            if (nuevoValor.matches(Regex("^\\d*\\.?\\d*$"))) {
+                                precio = nuevoValor
+                            }
+                        },
+                        label = { Text("Precio*") },
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions.Default.copy(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Done
                         )
-                    } ?: Icon(
-                        Icons.Filled.Image,
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp)
                     )
+
+                    OutlinedTextField(value = descripcion, onValueChange = { descripcion = it }, label = { Text("Descripción") }, modifier = Modifier.fillMaxWidth())
+
+                    Text("Los campos con un \"*\" son obligatorios.",  textAlign = TextAlign.Center, fontSize = 24.sp)
                 }
             }
         }
 
         item{
-            Text("Los campos con un \"*\" son obligatorios.",  textAlign = TextAlign.Center, fontSize = 24.sp)
+            Surface (
+                Modifier
+                    .fillMaxWidth()
+                    .padding(2.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.background
+            ){
+                Column (Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)){
+                    Row(Modifier.fillMaxWidth(), Arrangement.SpaceEvenly) {
+                        // Botón para galería
+                        IconButton(
+                            onClick = { galleryLauncher.launch("image/*") },
+                            modifier = Modifier.size(64.dp)
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = Icons.Filled.AddPhotoAlternate,
+                                    contentDescription = "Abrir galería",
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Text("Galería", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+
+                        IconButton(
+                            onClick = {
+                                if (ContextCompat.checkSelfPermission(
+                                        context,
+                                        Manifest.permission.CAMERA
+                                    ) == PackageManager.PERMISSION_GRANTED
+                                ) {
+                                    imageFile = context.createImageFile()
+                                    imageFile?.let { file ->
+                                        val uri = FileProvider.getUriForFile(
+                                            context,
+                                            "${context.packageName}.provider",
+                                            file
+                                        )
+                                        cameraLauncher.launch(uri)
+                                    }
+                                } else {
+                                    cameraPermission.launch(Manifest.permission.CAMERA)
+                                }
+                            },
+                            modifier = Modifier.size(64.dp)
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = Icons.Filled.CameraAlt,
+                                    contentDescription = "Tomar foto",
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Text("Tomar foto", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+
+                        // Botón para seleccionar carpeta (nuevo)
+                        val folderLauncher = rememberLauncherForActivityResult(
+                            ActivityResultContracts.OpenDocumentTree()
+                        ) { treeUri: Uri? ->
+                            treeUri?.let {
+                                context.contentResolver.takePersistableUriPermission(
+                                    it,
+                                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                                )
+                                context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                                    .edit { putString("save_folder_uri", it.toString()) }
+                                Toast.makeText(context, "Carpeta seleccionada", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+
+                        IconButton(
+                            onClick = { folderLauncher.launch(null) },
+                            modifier = Modifier.size(64.dp)
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = Icons.Filled.Folder,
+                                    contentDescription = "Seleccionar carpeta",
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Text("Elegir carpeta destino", style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
+                            }
+                        }
+                    }
+
+                    Text("Para guardar la imagen, haz \"click\" sobre ella.", textAlign = TextAlign.Center, fontSize = 24.sp)
+
+                    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
+                            Modifier
+                                .size(100.dp)
+                                .align(Alignment.CenterHorizontally)
+                                .clickable {
+                                    if (capturedImageBitmap != null) {
+                                        Toast.makeText(context, "Imagen guardada", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(context, "No existe ninguna imagen para guardar", Toast.LENGTH_SHORT).show()
+                                    }
+                                }, Alignment.Center
+                        ) {
+                            capturedImageBitmap?.let {
+                                Image(
+                                    bitmap = it,
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } ?: Icon(
+                                Icons.Filled.Image,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp)
+                            )
+                        }
+                    }
+
+                }
+            }
+        }
+
+        item{
             Button(onClick = {
                 if (nombre.isBlank() || precio.isBlank()) {
                     Toast.makeText(context, "Nombre y precio obligatorios", Toast.LENGTH_SHORT).show()
@@ -333,35 +371,6 @@ fun ProductoMto(id:String?, navController: NavController){
             }
         }
 
-    }
-}
-
-@Composable
-fun SelectSaveFolderButton(
-    modifier: Modifier = Modifier,
-    onFolderSelected: () -> Unit = {}
-) {
-    val context = LocalContext.current
-    val launcher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocumentTree()
-    ) { treeUri: Uri? ->
-        treeUri?.let {
-            context.contentResolver.takePersistableUriPermission(
-                it,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            )
-            context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-                .edit { putString("save_folder_uri", it.toString()) }
-            Toast.makeText(context, "Carpeta seleccionada", Toast.LENGTH_SHORT).show()
-            onFolderSelected()
-        }
-    }
-
-    Button(
-        onClick = { launcher.launch(null) },
-        modifier = modifier,
-    ) {
-        Text("Elegir carpeta destino")
     }
 }
 

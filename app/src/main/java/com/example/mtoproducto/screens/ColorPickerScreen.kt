@@ -48,7 +48,6 @@ fun RGBColorPicker(context: Context, navController: NavController) {
 
     Column(modifier = Modifier
         .fillMaxSize()
-        .background(MaterialTheme.colorScheme.background)
         .padding(16.dp))
     {
         Box(modifier = Modifier.fillMaxWidth()) {

@@ -30,10 +30,10 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.navigation.NavController
 import com.example.mtoproducto.PreferenceHelper
 
@@ -42,6 +42,7 @@ fun RGBColorPicker(context: Context, navController: NavController) {
     var red by remember { mutableFloatStateOf(255f) }
     var green by remember { mutableFloatStateOf(0f) }
     var blue by remember { mutableFloatStateOf(0f) }
+    var pulsado by remember { mutableStateOf(false) }
 
     val color = Color(red / 255f, green / 255f, blue / 255f)
 
@@ -53,7 +54,12 @@ fun RGBColorPicker(context: Context, navController: NavController) {
         Box(modifier = Modifier.fillMaxWidth()) {
             // Botón de regreso (alineado a la izquierda)
             IconButton(
-                onClick = { navController.popBackStack() },
+                onClick = {
+                    if(!pulsado){
+                        navController.popBackStack()
+                        pulsado = true
+                    }
+                },
                 modifier = Modifier.align(Alignment.CenterStart)
             ) {
                 Icon(

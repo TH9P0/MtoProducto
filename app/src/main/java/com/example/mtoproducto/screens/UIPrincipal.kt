@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -94,6 +95,10 @@ fun UIPrincipal(navControlador: NavController){
                 Text(text="Productos Disponibles", fontSize=24.sp, modifier = Modifier.weight(1f))
                 IconButton(onClick = { navControlador.navigate("ProductoMto") }) {
                     Icon(Icons.Filled.Add, contentDescription="Añadir")
+                }
+
+                IconButton(onClick = { navControlador.navigate("PantallaAyuda") }) {
+                    Icon(Icons.Filled.Info, contentDescription="ayuda!")
                 }
 
                 IconButton(onClick = { navControlador.navigate("ColorPicker") }) {

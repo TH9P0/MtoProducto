@@ -11,6 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.mtoproducto.screens.PantallaAyuda
 import com.example.mtoproducto.screens.ProductoMto
 import com.example.mtoproducto.screens.RGBColorPicker
 import com.example.mtoproducto.screens.UIPrincipal
@@ -38,6 +39,9 @@ fun Navegacion(){
         }
         composable("ColorPicker") {
             RGBColorPicker(context,navController)
+        }
+        composable("PantallaAyuda"){
+            PantallaAyuda(navController)
         }
         composable(
             "ProductoMto?id={id}",

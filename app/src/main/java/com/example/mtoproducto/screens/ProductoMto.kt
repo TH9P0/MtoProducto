@@ -25,7 +25,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddPhotoAlternate
@@ -80,7 +82,7 @@ fun ProductoMto(id:String?, navController: NavController){
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var imageFile by remember { mutableStateOf<File?>(null) }
     var capturedImageBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
-
+    var pulsado by remember { mutableStateOf(false) }
 
     fun processImage(uri: Uri?) {
         uri?.let {
@@ -168,11 +170,16 @@ fun ProductoMto(id:String?, navController: NavController){
         .fillMaxSize()
         .background(MaterialTheme.colorScheme.background)
         .padding(16.dp)
+        .verticalScroll(rememberScrollState())
     ){
         Box(modifier = Modifier.fillMaxWidth()) {
             // Botón de regreso (alineado a la izquierda)
             IconButton(
-                onClick = { navController.popBackStack() },
+                onClick = {
+                    if(!pulsado){
+                        navController.popBackStack()
+                        pulsado = true
+                    } },
                 modifier = Modifier.align(Alignment.CenterStart)
             ) {
                 Icon(
